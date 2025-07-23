@@ -23,7 +23,7 @@ Welcome to the NVIDIA MolMIM NIM Hackathon Challenge\! In this event, you'll har
 
 ### The Challenge
 
-The core of this hackathon lies in the intelligent design and evaluation of molecules. You will leverage the NVIDIA MolMIM NIM to generate a diverse array of molecular structures. Once generated, these molecules will undergo rigorous assessment of critical chemical properties such as:
+The core of this bootcamp with challenge lies in the intelligent design and evaluation of molecules. You will leverage the NVIDIA MolMIM NIM to generate a diverse array of molecular structures. Once generated, these molecules will undergo rigorous assessment of critical chemical properties such as:
 
 * **Drug-likeness (QED)**: Assessing the overall suitability of a molecule as a drug candidate.
 
@@ -45,7 +45,7 @@ The ultimate test of your generated molecules will be their predicted ability to
 
 ### Why Participate?
 
-This hackathon offers a unique opportunity to:
+This bootcamp with challenge offers a unique opportunity to:
 
 * Gain hands-on experience with state-of-the-art AI models for molecular design.
 
