@@ -39,7 +39,7 @@ By the end of this workshop, participants will:
 ## Getting Started
 
 1. **Setup Environment**: Follow the deployment guide in `deployment.md` or the detailed container setup in `tutorials/container_setup.ipynb`
-2. **Install Dependencies**: Use `tutorials/requirements.txt` for package installation
+2. **Install Dependencies**: Use `deployment_requirementsrequirements.txt` for package installation
 3. **Complete Tutorials**: Work through Lab 1 and Lab 2 in the tutorials folder
 4. **Take the Challenge**: Apply your skills in the challenge folder
 
