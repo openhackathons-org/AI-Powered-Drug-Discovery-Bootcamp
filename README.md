@@ -50,7 +50,7 @@ By the end of this workshop, participants will:
 cd Bootcamp-BioNemo
 
 # Install dependencies
-pip install -r tutorials/requirements.txt
+pip install -r deployment_requirements.txt
 
 # Follow deployment guide for MolMIM NIM setup
 cat deployment.md
