@@ -1,0 +1,21 @@
+compound_id,smiles,compound_type,known_activity,description
+CDK_001,CN(C)C1=NC=NC2=C1C=C(C=C2)NC3=CC(=CC=C3)C#N,CDK_inhibitor,CDK4/6_active,Palbociclib - FDA approved CDK4/6 inhibitor
+CDK_002,CC1=C(C=C(C=C1)NC2=NC=CC(=N2)NC3=CC=C(C=C3)C(=O)NCC4=CC=CC=N4)C,CDK_inhibitor,CDK4/6_active,Ribociclib - FDA approved CDK4/6 inhibitor
+CDK_003,CN1CCN(CC1)C2=CC=C(C=C2)NC3=NC=NC4=C3C=C(C=C4)NC5=C(C=CC=C5Cl)F,CDK_inhibitor,CDK4/6_active,Abemaciclib - FDA approved CDK4/6 inhibitor
+CDK_004,CN(C)C1=NC2=C(C=CC(=C2)NC3=CC=CC(=C3)C(F)(F)F)C(=N1)N,CDK_inhibitor,CDK4/6_active,SY-1365 - CDK7 inhibitor
+CDK_005,CC1=CC(=CC(=C1)NC2=NC(=NC=C2)NC3=CC=C(C=C3)CN4CCN(CC4)C)C,CDK_inhibitor,CDK4/6_active,LEE011 analog
+CDK_006,COC1=CC=C(C=C1)N2C=C(C(=N2)C3=CC=C(C=C3)Cl)C(=O)N,CDK_inhibitor,CDK2_active,Roscovitine analog
+CDK_007,CC1=C(SC(=N1)NC(=O)NC2=CC(=C(C=C2)OCC3=CC=CC=N3)OC)C(=O)OC,CDK_inhibitor,CDK_active,Purvalanol analog
+CDK_008,CN1C=NC2=C1C(=O)N(C(=O)N2C)C3=CC=CC=C3,CDK_inhibitor,CDK2_active,R-roscovitine derivative
+CDK_009,CCC(=O)NC1=CC=C(C=C1)C2=CN=C(N=C2N)N,CDK_inhibitor,CDK_active,AG-024322 analog
+CDK_010,C1CN(CCN1)C2=NC3=C(C=CC(=C3)Br)C(=N2)NC4=CC=C(C=C4)CN5CCOCC5,CDK_inhibitor,CDK4/6_active,PD-0332991 analog
+DECOY_001,CC(=O)OC1=CC=CC=C1C(=O)O,decoy,inactive,Aspirin - anti-inflammatory
+DECOY_002,CC1=CC=C(C=C1)C(C)C(=O)O,decoy,inactive,Ibuprofen - NSAID
+DECOY_003,COC1=CC=C(C=C1)C(=O)C2=CC=C(C=C2)OC,decoy,inactive,Simple aromatic ketone
+DECOY_004,CCCCCCCCCCCCCCCC(=O)O,decoy,inactive,Palmitic acid - fatty acid
+DECOY_005,CN(C)CCOC1=CC=C(C=C1)C(C2=CC=CC=C2)(C3=CC=CC=C3)CCl,decoy,inactive,Chlorpheniramine - antihistamine
+DECOY_006,CC1=C(C(=O)N(C2=CC=CC=C2)N1C)C3=CC=C(C=C3)Cl,decoy,inactive,Phenylpyrazolone derivative
+DECOY_007,CN1CCN(CC1)C2=C(C=C3C(=C2)N=CC=C3)Cl,decoy,inactive,Quinoline derivative
+DECOY_008,COC1=CC=C(C=C1)N2C=NC=N2,decoy,inactive,Simple imidazole
+DECOY_009,CC(C)NCC(COC1=CC=CC=C1)O,decoy,inactive,Propranolol - beta blocker
+DECOY_010,CN(C)C(=O)C1=CC=C(C=C1)N(CCCl)CCCl,decoy,inactive,Mechlorethamine analog

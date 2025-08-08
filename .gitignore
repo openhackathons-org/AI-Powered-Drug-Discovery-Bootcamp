@@ -1,0 +1,6 @@
+**/__pycache__
+**/.ipynb_checkpoints
+**/.DS_store
+**/scoring-dev
+**/scoring-np
+**/chembl_data

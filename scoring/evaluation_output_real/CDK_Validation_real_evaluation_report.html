@@ -1,0 +1,316 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>OpenHackathon Evaluation Report - CDK_Validation (REAL PREDICTIONS ONLY)</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { background-color: #e8f4fd; padding: 20px; border-radius: 5px; border-left: 5px solid #2196F3; }
+            .summary { margin: 20px 0; }
+            .table-container { overflow-x: auto; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+            th { background-color: #f2f2f2; }
+            .real-data { background-color: #d4edda; }
+            .missing-data { background-color: #f8d7da; }
+            .warning { background-color: #fff3cd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🔬 OpenHackathon Evaluation Report - REAL PREDICTIONS ONLY</h1>
+            <h2>Team: CDK_Validation</h2>
+            <p><strong>Generated:</strong> 2025-08-07 13:55:27</p>
+            <p><strong>Mode:</strong> NO MOCK PREDICTIONS - Real Boltz2 data only</p>
+            <p><strong>Endpoints Used:</strong> Multiple parallel Boltz2 NIM instances</p>
+        </div>
+        
+        <div class="warning">
+            <h3>⚠️ Important Note</h3>
+            <p>This evaluation uses ONLY real Boltz2 predictions. Any compounds with failed predictions 
+            receive zero scores for binding affinity metrics. This ensures complete data integrity but 
+            may result in lower overall scores if endpoints were unavailable.</p>
+        </div>
+        
+        <div class="summary">
+            <h3>📊 Summary Statistics</h3>
+            <p><strong>Total compounds:</strong> 20</p>
+            <p><strong>Compounds with real predictions:</strong> 20 
+               (100.0%)</p>
+            <p><strong>Top 25 average score:</strong> 0.371</p>
+            <p><strong>Best compound score:</strong> 0.634</p>
+            <p><strong>Real data integrity:</strong> 100% (no mock predictions used)</p>
+        </div>
+        
+        <div class="table-container">
+            <h3>Top 25 Compounds</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>SMILES</th>
+                        <th>Score</th>
+                        <th>CDK4 pIC50</th>
+                        <th>CDK6 pIC50</th>
+                        <th>CDK11 pIC50</th>
+                        <th>Selectivity</th>
+                        <th>QED</th>
+                        <th>Data Quality</th>
+                    </tr>
+                </thead>
+                <tbody>
+    
+                    <tr class="real-data">
+                        <td>1</td>
+                        <td style="font-family: monospace; text-align: left;">CN1CCN(CC1)C2=CC=C(C=C2)NC3=NC=NC4=C3C=C(C=C4)NC5=...</td>
+                        <td>0.634</td>
+                        <td>8.327217749595643</td>
+                        <td>8.11919562074542</td>
+                        <td>7.208066784381867</td>
+                        <td>1.1408337062240486</td>
+                        <td>0.399</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>2</td>
+                        <td style="font-family: monospace; text-align: left;">CC1=C(C=C(C=C1)NC2=NC=CC(=N2)NC3=CC=C(C=C3)C(=O)NC...</td>
+                        <td>0.596</td>
+                        <td>8.830864748954774</td>
+                        <td>9.838122487545014</td>
+                        <td>8.777774149179459</td>
+                        <td>1.063423642051537</td>
+                        <td>0.391</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>3</td>
+                        <td style="font-family: monospace; text-align: left;">CCC(=O)NC1=CC=C(C=C1)C2=CN=C(N=C2N)N</td>
+                        <td>0.529</td>
+                        <td>6.3081143093109135</td>
+                        <td>6.604050937652588</td>
+                        <td>5.653256397247315</td>
+                        <td>1.1420110866746218</td>
+                        <td>0.775</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>4</td>
+                        <td style="font-family: monospace; text-align: left;">CC1=C(SC(=N1)NC(=O)NC2=CC(=C(C=C2)OCC3=CC=CC=N3)OC...</td>
+                        <td>0.490</td>
+                        <td>6.7377686963081365</td>
+                        <td>8.439297439455986</td>
+                        <td>7.073611790657044</td>
+                        <td>1.0727945241652375</td>
+                        <td>0.550</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>5</td>
+                        <td style="font-family: monospace; text-align: left;">CN(C)C1=NC=NC2=C1C=C(C=C2)NC3=CC(=CC=C3)C#N</td>
+                        <td>0.449</td>
+                        <td>7.643522019505501</td>
+                        <td>6.980893017292023</td>
+                        <td>7.04068450498581</td>
+                        <td>1.0385647126576916</td>
+                        <td>0.801</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>6</td>
+                        <td style="font-family: monospace; text-align: left;">CC1=CC(=CC(=C1)NC2=NC(=NC=C2)NC3=CC=C(C=C3)CN4CCN(...</td>
+                        <td>0.420</td>
+                        <td>7.946016771674157</td>
+                        <td>8.509408307552338</td>
+                        <td>9.385891536712647</td>
+                        <td>0.8766041702939585</td>
+                        <td>0.640</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>7</td>
+                        <td style="font-family: monospace; text-align: left;">C1CN(CCN1)C2=NC3=C(C=CC(=C3)Br)C(=N2)NC4=CC=C(C=C4...</td>
+                        <td>0.385</td>
+                        <td>7.955043917536736</td>
+                        <td>7.726951696038247</td>
+                        <td>8.913036296606064</td>
+                        <td>0.8797223152845117</td>
+                        <td>0.577</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>8</td>
+                        <td style="font-family: monospace; text-align: left;">CN(C)C(=O)C1=CC=C(C=C1)N(CCCl)CCCl</td>
+                        <td>0.384</td>
+                        <td>6.58122478055954</td>
+                        <td>5.881511464118958</td>
+                        <td>5.892155031204224</td>
+                        <td>1.0575701134421076</td>
+                        <td>0.752</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>9</td>
+                        <td style="font-family: monospace; text-align: left;">CCCCCCCCCCCCCCCC(=O)O</td>
+                        <td>0.354</td>
+                        <td>6.976019444704057</td>
+                        <td>6.630128311157227</td>
+                        <td>6.537872789382935</td>
+                        <td>1.0405636598519803</td>
+                        <td>0.413</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>10</td>
+                        <td style="font-family: monospace; text-align: left;">CN(C)C1=NC2=C(C=CC(=C2)NC3=CC=CC(=C3)C(F)(F)F)C(=N...</td>
+                        <td>0.354</td>
+                        <td>6.622477911949158</td>
+                        <td>6.388043338775636</td>
+                        <td>6.3640254755020145</td>
+                        <td>1.0221925773571268</td>
+                        <td>0.748</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>11</td>
+                        <td style="font-family: monospace; text-align: left;">COC1=CC=C(C=C1)C(=O)C2=CC=C(C=C2)OC</td>
+                        <td>0.339</td>
+                        <td>6.162756073951722</td>
+                        <td>6.0002671232223515</td>
+                        <td>5.946679694652558</td>
+                        <td>1.0226733047993855</td>
+                        <td>0.773</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>12</td>
+                        <td style="font-family: monospace; text-align: left;">CN1C=NC2=C1C(=O)N(C(=O)N2C)C3=CC=CC=C3</td>
+                        <td>0.326</td>
+                        <td>5.784797897815705</td>
+                        <td>5.596498727798462</td>
+                        <td>5.530413912773133</td>
+                        <td>1.0289731245415008</td>
+                        <td>0.634</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>13</td>
+                        <td style="font-family: monospace; text-align: left;">CC1=C(C(=O)N(C2=CC=CC=C2)N1C)C3=CC=C(C=C3)Cl</td>
+                        <td>0.300</td>
+                        <td>6.216482851982117</td>
+                        <td>6.405668362617493</td>
+                        <td>6.685155250549317</td>
+                        <td>0.9440430964917574</td>
+                        <td>0.707</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>14</td>
+                        <td style="font-family: monospace; text-align: left;">COC1=CC=C(C=C1)N2C=NC=N2</td>
+                        <td>0.298</td>
+                        <td>4.971307454109192</td>
+                        <td>5.189179766654969</td>
+                        <td>4.93791529083252</td>
+                        <td>1.0288233560811466</td>
+                        <td>0.690</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>15</td>
+                        <td style="font-family: monospace; text-align: left;">CN1CCN(CC1)C2=C(C=C3C(=C2)N=CC=C3)Cl</td>
+                        <td>0.295</td>
+                        <td>5.988438841819764</td>
+                        <td>5.537466426372529</td>
+                        <td>6.197766121864319</td>
+                        <td>0.929843364679798</td>
+                        <td>0.787</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>16</td>
+                        <td style="font-family: monospace; text-align: left;">CC(C)NCC(COC1=CC=CC=C1)O</td>
+                        <td>0.293</td>
+                        <td>5.267060342788697</td>
+                        <td>5.955044402122498</td>
+                        <td>5.587645077705384</td>
+                        <td>1.0041889365261707</td>
+                        <td>0.744</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>17</td>
+                        <td style="font-family: monospace; text-align: left;">COC1=CC=C(C=C1)N2C=C(C(=N2)C3=CC=C(C=C3)Cl)C(=O)N</td>
+                        <td>0.288</td>
+                        <td>6.071879737854005</td>
+                        <td>5.807177551269532</td>
+                        <td>6.256733057498932</td>
+                        <td>0.9493017587095649</td>
+                        <td>0.799</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>18</td>
+                        <td style="font-family: monospace; text-align: left;">CN(C)CCOC1=CC=C(C=C1)C(C2=CC=CC=C2)(C3=CC=CC=C3)CC...</td>
+                        <td>0.243</td>
+                        <td>5.934583933830262</td>
+                        <td>6.414267866611481</td>
+                        <td>6.638946514129639</td>
+                        <td>0.9300308350201401</td>
+                        <td>0.394</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>19</td>
+                        <td style="font-family: monospace; text-align: left;">CC(=O)OC1=CC=CC=C1C(=O)O</td>
+                        <td>0.228</td>
+                        <td>4.839194084167481</td>
+                        <td>4.969029407501221</td>
+                        <td>5.090675470352173</td>
+                        <td>0.9633516831005927</td>
+                        <td>0.550</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                    <tr class="real-data">
+                        <td>20</td>
+                        <td style="font-family: monospace; text-align: left;">CC1=CC=C(C=C1)C(C)C(=O)O</td>
+                        <td>0.212</td>
+                        <td>4.042487526893616</td>
+                        <td>4.375439079284669</td>
+                        <td>4.392506380081177</td>
+                        <td>0.9582142814775093</td>
+                        <td>0.727</td>
+                        <td>✅ Real</td>
+                    </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="summary">
+            <h3>🎯 Data Quality Legend</h3>
+            <p><span style="background-color: #d4edda; padding: 2px 8px;">✅ Real</span> - 
+               Compound evaluated using actual Boltz2 predictions</p>
+            <p><span style="background-color: #f8d7da; padding: 2px 8px;">❌ Missing</span> - 
+               Boltz2 prediction failed, compound penalized in scoring</p>
+        </div>
+    </body>
+    </html>
+    
