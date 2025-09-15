@@ -51,9 +51,8 @@ This challenge offers a unique opportunity to:
 Prepare to innovate, experiment, and push the boundaries of what's possible in the quest for life-changing medicines!
 
 ## Resources
-
-- **Tutorials**: Complete guided examples in the tutorials folder
-- **Documentation**: MolMIM NIM documentation and examples
+- **Tutorials**: Complete guided examples in the [tutorials](../tutorials) folder
+- **Documentation**: [MolMIM NIM documentation](https://docs.nvidia.com/nim/bionemo/molmim/latest/overview.html) and examples
 - **Support**: Technical support and community forums
 
 Good luck with your challenge! 
