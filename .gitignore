@@ -13,4 +13,3 @@ scoring/cdk_inhibitors_dataset copy.csv
 cdk_inhibitors_dataset.csv
 scoring/chembl_data/chembl_compounds.db
 scoring/chembl_data/chembl_35_chemreps.txt
-scoring/chembl_data/chembl_fingerprints.pkl
