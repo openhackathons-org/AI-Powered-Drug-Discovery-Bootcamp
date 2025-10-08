@@ -1,0 +1,501 @@
+compound_id,smiles,compound_type,known_activity,description
+CDK_211,C1CCNCC1.CN.CN1CCCCC1.N[SH](=O)=O,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_074,CC(C)C.Clc1ccccc1.Nc1nc2ccccc2[nH]1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 40
+DECOY_168,C1CCNCC1.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_032,CN1CCC(=C(c2ccccc2)c3ccccc3)CC1,decoy,inactive,Antibiotic compound
+CDK_105,Cn1ncc2ncncc21.Fc1ccccc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 71
+DECOY_179,Cl.NC=O.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_170,C1CCNCC1.CO.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_125,COc1ccccc1.Cc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 91
+CDK_069,COc1ccccc1.Clc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 35
+CDK_248,Br.CN1CCCCC1.F.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_010,C1CN(CCN1)C2=NC3=C(C=CC(=C3)Br)C(=N2)NC4=CC=C(C=C4)CN5CCOCC5,CDK_inhibitor,CDK4/6_active,PD-0332991 analog
+DECOY_061,Br.CN1CCCCC1.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_229,Br.CN1CCCCC1.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_085,CCN(C)C.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 51
+DECOY_166,CN1CCCCC1.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_176,C1CCNCC1.CN1CCCCC1.Cl.F,decoy,inactive,Drug-like decoy compound
+DECOY_240,CN.NC=O.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_031,Cn1c(Br)nc2c1c(=O)n(-c1ccccc1)c(=O)n2C,CDK_inhibitor,CDK2_active,R-roscovitine derivative analog 4
+CDK_190,C1CCNCC1.CN.FC(F)F.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_189,CN1CCCCC1.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_262,CN1CCCCC1.O=CO.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_263,Br.CN1CCCCC1.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_112,C1CCNCC1.FC(F)F.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_160,CN1CCCCC1.FC(F)F.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_077,CN1CCCCC1.Nc1nc2ccccc2[nH]1.c1cncnc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 43
+DECOY_222,C1CCNCC1.F.NC=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_241,CN1CCCCC1.Cl.F.FC(F)F,decoy,inactive,Drug-like decoy compound
+DECOY_072,NC=O.O=CO.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_102,Nc1ncnc(Nc2ccccc2)n1.c1cncnc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 68
+CDK_198,C1CCNCC1.CO.FC(F)F.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_229,CO.NC=O.N[SH](=O)=O.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_148,CN1CCCCC1.F.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_207,CN.CN1CCCCC1.NC=O.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_049,CN.FC(F)F.N[SH](=O)=O.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_003,CN1CCN(CC1)C2=CC=C(C=C2)NC3=NC=NC4=C3C=C(C=C4)NC5=C(C=CC=C5Cl)F,CDK_inhibitor,CDK4/6_active,Abemaciclib - FDA approved CDK4/6 inhibitor
+DECOY_147,Br.CN1CCCCC1.CO,decoy,inactive,Drug-like decoy compound
+CDK_231,Br.CN1CCCCC1.CO.Cl,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_071,CCN(C)C.FC(F)(F)c1ccccc1.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 37
+DECOY_070,C1CCNCC1.CN.CN1CCCCC1.F,decoy,inactive,Drug-like decoy compound
+CDK_064,C1CCNCC1.CCN(C)C.CN1CCCCC1.Cn1ccc2ncncc21,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 30
+CDK_221,Br.CN1CCCCC1.Cl,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_094,C1CCNCC1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 60
+DECOY_236,Br.C1CCNCC1.CN1CCCCC1.CO,decoy,inactive,Drug-like decoy compound
+DECOY_055,CN1CCCCC1.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_034,CCC(=O)N(C)c1ccc(-c2cnc(N)nc2N)cc1,CDK_inhibitor,CDK_active,AG-024322 analog analog 3
+CDK_078,CC(C)C.Nc1nc(Nc2ccccc2)nc2ccccc12,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 44
+CDK_001,CN(C)C1=NC=NC2=C1C=C(C=C2)NC3=CC(=CC=C3)C#N,CDK_inhibitor,CDK4/6_active,Palbociclib - FDA approved CDK4/6 inhibitor
+DECOY_002,CC1=CC=C(C=C1)C(C)C(=O)O,decoy,inactive,Ibuprofen - NSAID
+CDK_234,Br.C1CCNCC1.NC=O.O=CO,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_023,CCN1CCCN(c2ccc(Nc3ncnc4ccc(Nc5c(F)cccc5Cl)cc34)cc2)CC1,CDK_inhibitor,CDK4/6_active,Abemaciclib analog 1
+CDK_073,CCN(C)C.Nc1nc(N)c2ccccc2n1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 39
+DECOY_053,N[SH](=O)=O.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_132,CN1CCCCC1.Cc1ccccc1.c1ccccc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 98
+CDK_232,Cl.O=CO.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_060,Cl.NC=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_056,CN1CCCCC1.Nc1nc(Nc2ccccc2)nc2ccccc12,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 22
+DECOY_025,CC(C)NCC(O)COc1ccc(CC(N)=O)cc1,decoy,inactive,Antibiotic compound
+DECOY_009,CC(C)NCC(COC1=CC=CC=C1)O,decoy,inactive,Propranolol - beta blocker
+DECOY_067,Br.F.FC(F)F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_079,C1CCNCC1.Fc1ccccc1.Nc1ncnc(N)n1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 45
+CDK_266,F.FC(F)F.O=CO.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_102,Cl.O=CO.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_141,C1CCNCC1.CN.CN1CCCCC1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_234,F.O=CO.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_080,CC(C)C.FC(F)(F)c1ccccc1.Nc1nc(N)c2ccccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 46
+CDK_040,Clc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1.c1ccccc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 6
+DECOY_214,Br.C1CCNCC1.CN.FC(F)F,decoy,inactive,Drug-like decoy compound
+CDK_047,COc1ccccc1.Nc1nc2ccncc2[nH]1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 13
+CDK_164,Br.CN.NC=O.N[SH](=O)=O,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_177,Br.CN.CN1CCCCC1,decoy,inactive,Drug-like decoy compound
+DECOY_157,Br.FC(F)F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_151,Br.Cl.F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_111,C1CCNCC1.CN1CCCCC1.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_183,Br.CN1CCCCC1.CO.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_138,CN.Cl.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_128,Br.C1CCNCC1.FC(F)F,decoy,inactive,Drug-like decoy compound
+CDK_174,F.FC(F)F.O=CO.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_070,Clc1ccccc1.Fc1ccccc1.Nc1n[nH]c2ccccc12,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 36
+DECOY_218,NC=O.N[SH](=O)=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_253,O=CO.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_031,CN(C)CCC(c1ccccc1)c2ccccn2,decoy,inactive,Beta-blocker compound
+CDK_083,C1CCNCC1.c1cncnc1.c1cncnc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 49
+CDK_258,C1CCNCC1.NC=O.N[SH](=O)=O.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_135,CO.F.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_193,O=CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_091,CCN(C)C.Nc1nc(Nc2ccccc2)nc2ccccc12,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 57
+CDK_139,CN1CCCCC1.FC(F)F.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_192,C1CCNCC1.F.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_134,CN1CCCCC1.N[SH](=O)=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_178,Br.CN.CN1CCCCC1.CO,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_219,F.O=CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_257,C1CCNCC1.CN1CCCCC1.Cl.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_212,Br.CN1CCCCC1.CO.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_142,C1CCNCC1.FC(F)F.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_202,F.NC=O.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_205,Br.CN.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_087,CN1CCCCC1.Nc1nc(N)c2ccccc2n1.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 53
+CDK_076,CN1CCCCC1.Cc1ccccc1.FC(F)(F)c1ccccc1.Nc1nc(Nc2ccccc2)nc2ccccc12,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 42
+CDK_244,CN.F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_006,CC1=C(C(=O)N(C2=CC=CC=C2)N1C)C3=CC=C(C=C3)Cl,decoy,inactive,Phenylpyrazolone derivative
+CDK_168,CN.CN1CCCCC1.CO.FC(F)F,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_242,C1CCNCC1.FC(F)F.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_010,CN(C)C(=O)C1=CC=C(C=C1)N(CCCl)CCCl,decoy,inactive,Mechlorethamine analog
+DECOY_140,N[SH](=O)=O.O=CO.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_146,C1CCNCC1.CN.CN1CCCCC1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_057,Nc1ncnc(N)n1.c1ccncc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 23
+CDK_187,C1CCNCC1.CO.Cl.N[SH](=O)=O,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_083,C1CCNCC1.CN.CN1CCCCC1.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_145,C1CCNCC1.Cl.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_133,COc1ccccc1.Cc1ccccc1.Nc1nc2ccncc2[nH]1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 99
+DECOY_014,CC(C)N(C)CC(O)COc1ccccc1,decoy,inactive,Propranolol analog
+DECOY_197,Br.CN1CCCCC1.NC=O.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_199,Br.FC(F)F.NC=O.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_026,COc1ccc(-n2cc(C(N(C))=O)c(-c3ccc(Cl)cc3)n2)cc1,CDK_inhibitor,CDK2_active,Roscovitine analog analog 1
+CDK_252,Br.F.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_113,CN1CCCCC1.Cl.FC(F)F,decoy,inactive,Drug-like decoy compound
+DECOY_091,C1CCNCC1.CN.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_163,CN1CCCCC1.F.NC=O.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_118,C1CCNCC1.COc1ccccc1.Cc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 84
+CDK_043,CN1CCCCC1.Nc1ncnc(N)n1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 9
+DECOY_076,CN.CN1CCCCC1.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_137,Br.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_192,CN1CCCCC1.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_030,CC(CS)C(=O)N1CCCC1C(=O)O,decoy,inactive,Antidepressant compound
+CDK_159,CN.CN1CCCCC1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_081,C1CCNCC1.CN1CCCCC1.FC(F)F.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_235,N[SH](=O)=O.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_148,Br.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_127,Cc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 93
+CDK_197,C1CCNCC1.F.O=CO.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_032,CCCC(=O)Nc1ccc(-c2cnc(N)nc2N)cc1,CDK_inhibitor,CDK_active,AG-024322 analog analog 1
+CDK_114,C1CCNCC1.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 80
+CDK_255,Br.CN.N[SH](=O)=O.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_175,Br.CO.Cl.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_017,CN(C)c1ccc(C=CC(=O)NC2C(=O)C3(O)C(O)C4C(N(C)C)C(O)=C(C(N)=O)C(=O)C4(O)C(O)(C3C(=O)C2=C(O)c2c(O)cccc2Cl)C)cc1,decoy,inactive,Statin compound
+CDK_058,CC(C)C.Cc1ccccc1.Cn1ccc2ncncc21,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 24
+CDK_144,CN1CCCCC1.NC=O.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_025,Cc1cc(C)cc(N(C)c2ccnc(Nc3ccc(CN4CCCN(C)CC4)cc3)n2)c1,CDK_inhibitor,CDK4/6_active,LEE011 analog analog 1
+DECOY_008,COC1=CC=C(C=C1)N2C=NC=N2,decoy,inactive,Simple imidazole
+CDK_172,Br.CN.FC(F)F.NC=O,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_067,CCN(C)C.COc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 33
+DECOY_069,C1CCNCC1.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_259,Br.Cl.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_095,CC(C)C.Fc1ccccc1.Nc1n[nH]c2ccccc12,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 61
+DECOY_095,Br.NC=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_173,C1CCNCC1.FC(F)F.NC=O.N[SH](=O)=O,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_024,CCN1CCN(c2ccc(Nc3ncnc4ccc(Nc5c(F)cccc5Cl)cc34)cc2)CC1,CDK_inhibitor,CDK4/6_active,Abemaciclib analog 2
+DECOY_078,Br.C1CCNCC1.NC=O,decoy,inactive,Drug-like decoy compound
+DECOY_101,Br.C1CCNCC1.Cl.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_239,C1CCNCC1.CN1CCCCC1.F.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_006,COC1=CC=C(C=C1)N2C=C(C(=N2)C3=CC=C(C=C3)Cl)C(=O)N,CDK_inhibitor,CDK2_active,Roscovitine analog
+CDK_117,FC(F)(F)c1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 83
+CDK_046,CC(C)C.Nc1n[nH]c2ccccc12,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 12
+DECOY_007,CN1CCN(CC1)C2=C(C=C3C(=C2)N=CC=C3)Cl,decoy,inactive,Quinoline derivative
+CDK_251,C1CCNCC1.Cl.F.N[SH](=O)=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_208,C1CCNCC1.FC(F)F.NC=O.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_004,CN(C)C1=NC2=C(C=CC(=C2)NC3=CC=CC(=C3)C(F)(F)F)C(=N1)N,CDK_inhibitor,CDK4/6_active,SY-1365 - CDK7 inhibitor
+CDK_154,C1CCNCC1.N[SH](=O)=O.O=CO.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_188,C1CCNCC1.CN1CCCCC1.Cl.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_061,Nc1nc2ccccc2[nH]1.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 27
+CDK_111,CN1CCCCC1.COc1ccccc1.Nc1nc2ccncc2[nH]1.c1cncnc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 77
+DECOY_139,C1CCNCC1.CN1CCCCC1.F.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_200,C1CCNCC1.Cl.F.FC(F)F,decoy,inactive,Drug-like decoy compound
+CDK_030,Cn1c(C(F)(F)F)nc2c1c(=O)n(-c1ccccc1)c(=O)n2C,CDK_inhibitor,CDK2_active,R-roscovitine derivative analog 3
+DECOY_205,C1CCNCC1.CN1CCCCC1.Cl.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_256,Br.Cl.FC(F)F.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_027,CCOC(=O)c1sc(NC(=O)Nc2ccc(OCc3ccccn3)c(OC)c2)nc1C,CDK_inhibitor,CDK_active,Purvalanol analog analog 1
+CDK_008,CN1C=NC2=C1C(=O)N(C(=O)N2C)C3=CC=CC=C3,CDK_inhibitor,CDK2_active,R-roscovitine derivative
+DECOY_216,C1CCNCC1.CN1CCCCC1.Cl,decoy,inactive,Drug-like decoy compound
+CDK_109,COc1ccccc1.Nc1nc(N)c2ccccc2n1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 75
+CDK_038,Clc1ccccc1.Cn1ncc2ncncc21.c1ccncc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 4
+DECOY_034,CC(C)Cc1ccc(C(C)C(=O)O)cc1,decoy,inactive,Antifungal compound
+CDK_261,Br.C1CCNCC1.CN1CCCCC1.Cl,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_119,CCN(C)C.COc1ccccc1.Fc1ccccc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 85
+CDK_115,Cc1ccccc1.Nc1ncnc(Nc2ccccc2)n1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 81
+CDK_136,C1CCNCC1.F.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_167,Br.Cl.F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_140,CN1CCCCC1.CO.NC=O.O=CO,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_021,CCC(C)(C)C(=O)OC1CC(C)C=C2C=CC(C)C(CCC(O)CC(O)CC(=O)O)C21,decoy,inactive,Diuretic compound
+CDK_216,Br.N[SH](=O)=O.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_225,Br.NC=O.O=CO.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_145,Br.F.FC(F)F.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_187,C1CCNCC1.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_109,CN1CCCCC1.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_217,Br.CN1CCCCC1.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_018,CC1CC(C)CN(C1)c2c(F)cc3c(=O)c(C(=O)O)cn(C4CC4)c3c2F,decoy,inactive,Diuretic compound
+DECOY_162,C1CCNCC1.CN1CCCCC1.F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_068,C1CCNCC1.CC(C)C.Nc1ncnc(Nc2ccccc2)n1.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 34
+DECOY_071,C1CCNCC1.CO.Cl.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_045,CN1CCCCC1.FC(F)F.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_265,FC(F)F.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_218,C1CCNCC1.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_184,Br.NC=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_176,CN1CCCCC1.F.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_110,Cc1ccccc1.Cn1ncc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 76
+DECOY_092,Br.CN1CCCCC1.CO.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_022,CCCC(C)(C)C(=O)OC1CC(C)C=C2C=CC(C)C(CCC(O)CC(O)CC(=O)O)C21,decoy,inactive,ACE inhibitor compound
+CDK_093,C1CCNCC1.Nc1n[nH]c2ccccc12.c1ccccc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 59
+DECOY_029,CCOC(=O)C(CCc1ccccc1)NC(C)C(=O)N1CCCC1C(=O)O,decoy,inactive,Antihistamine compound
+DECOY_164,CO.F.FC(F)F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_225,C1CCNCC1.CN.CN1CCCCC1.CO,decoy,inactive,Drug-like decoy compound
+CDK_084,Cc1ccccc1.Cn1ccc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 50
+DECOY_089,C1CCNCC1.CN.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_042,CN.CN1CCCCC1.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_040,CNc1ccc(Br)cc1CCC2=CC=CC=C2,decoy,inactive,Statin compound
+DECOY_065,C1CCNCC1.F.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_082,CN.CN1CCCCC1.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_075,Clc1ccccc1.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 41
+DECOY_231,Br.CN1CCCCC1.F.FC(F)F,decoy,inactive,Drug-like decoy compound
+CDK_209,Br.NC=O.O=CO.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_093,Br.C1CCNCC1.CN.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_120,CN1CCCCC1.COc1ccccc1.Nc1nc(Nc2ccccc2)nc2ccccc12,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 86
+CDK_189,Br.CN1CCCCC1.FC(F)F.N[SH](=O)=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_124,Cl.O=CO.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_096,CO.N[SH](=O)=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_207,Br.CN1CCCCC1.N[SH](=O)=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_227,Br.C1CCNCC1.CN1CCCCC1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_157,Br.CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_158,Br.C1CCNCC1.CO.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_161,Br.F.FC(F)F.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_220,CN1CCCCC1.NC=O.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_108,F.NC=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_037,CN1CCCCC1.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 3
+DECOY_062,C1CCNCC1.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_016,CC1(C)SC2C(NC(=O)C(N)c3ccccc3)C(=O)N2C1C(=O)O,decoy,inactive,Antihistamine compound
+CDK_214,N[SH](=O)=O.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_167,C1CCNCC1.F.O=CO.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_206,C1CCNCC1.CO.FC(F)F.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_181,CN.CN1CCCCC1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_060,CC(C)C.Nc1nc(Nc2ccccc2)nc2ccccc12.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 26
+CDK_112,CN1CCCCC1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1.c1ccncc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 78
+CDK_090,C1CCNCC1.FC(F)(F)c1ccccc1.Fc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 56
+DECOY_204,Br.CO.NC=O.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_007,CC1=C(SC(=N1)NC(=O)NC2=CC(=C(C=C2)OCC3=CC=CC=N3)OC)C(=O)OC,CDK_inhibitor,CDK_active,Purvalanol analog
+DECOY_161,C1CCNCC1.CN1CCCCC1.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_204,Br.CN.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_200,CN1CCCCC1.CO.FC(F)F,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_035,CCC(C)Cc1ccc(C(C)C(=O)O)cc1,decoy,inactive,Antihistamine compound
+DECOY_027,CC(C)N(C)CC(O)COc1ccc(CC(N)=O)cc1,decoy,inactive,NSAID compound
+CDK_138,FC(F)F.N[SH](=O)=O.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_226,CN.FC(F)F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_141,CN1CCCCC1.Cl.F.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_247,N[SH](=O)=O.O=CO.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_001,CC(=O)OC1=CC=CC=C1C(=O)O,decoy,inactive,Aspirin - anti-inflammatory
+DECOY_173,FC(F)F.c1ccccc1.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_104,FC(F)(F)c1ccccc1.Nc1nc2ccccc2[nH]1.c1ccccc1.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 70
+CDK_082,CN1CCCCC1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 48
+CDK_039,C1CCNCC1.Nc1nc2ccccc2[nH]1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 5
+DECOY_136,C1CCNCC1.FC(F)F.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_044,CO.F.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_226,C1CCNCC1.CN1CCCCC1.Cl.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_121,Br.C1CCNCC1.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_228,Br.F.N[SH](=O)=O.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_064,C1CCNCC1.NC=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_122,O=CO.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_193,Br.CN1CCCCC1.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_023,CC(C)NCC(O)COc1cccc2ccccc12,decoy,inactive,Statin compound
+DECOY_178,Br.C1CCNCC1.Cl,decoy,inactive,Drug-like decoy compound
+DECOY_024,CCC(C)N(C)CC(O)COc1cccc2ccccc12,decoy,inactive,Diuretic compound
+DECOY_213,Br.C1CCNCC1.CN1CCCCC1.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_117,C1CCNCC1.CN.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_124,CC(C)C.Clc1ccccc1.Cn1ncc2ncncc21.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 90
+CDK_215,F.FC(F)F.O=CO.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_097,CC(C)C.CN1CCCCC1.Clc1ccccc1.Nc1nc2ccccc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 63
+DECOY_020,CCC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O,decoy,inactive,Antihistamine compound
+DECOY_086,F.FC(F)F.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_209,CN1CCCCC1.FC(F)F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_098,Cc1ccccc1.Cc1ccccc1.FC(F)(F)c1ccccc1.Nc1nc2ccccc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 64
+CDK_230,CN1CCCCC1.Cl.O=CO.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_123,Clc1ccccc1.Cn1ncc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 89
+DECOY_054,Br.C1CCNCC1.FC(F)F.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_147,Br.C1CCNCC1.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_090,CN1CCCCC1.NC=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_129,C1CCNCC1.CN.CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_123,Br.CO.NC=O.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_156,FC(F)F.O=CO.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_223,Br.CN1CCCCC1.NC=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_180,Br.C1CCNCC1.CN.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_180,CN1CCCCC1.O=CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_126,CC(C)C.COc1ccccc1.Clc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 92
+DECOY_126,Br.F.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_079,Br.CN1CCCCC1.CO.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_236,Br.C1CCNCC1.CO.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_155,C1CCNCC1.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_130,COc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1.c1ccccc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 96
+DECOY_195,CO.Cl.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_182,CN1CCCCC1.NC=O.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_211,CN.Cl.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_169,Br.CN1CCCCC1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_184,F.NC=O.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_159,CN.CN1CCCCC1.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_120,CN1CCCCC1.F.FC(F)F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_181,CN1CCCCC1.Cl.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+CDK_201,CN1CCCCC1.FC(F)F.O=CO.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_113,Cc1ccccc1.FC(F)(F)c1ccccc1.Nc1nc2ccccc2[nH]1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 79
+DECOY_052,CN1CCCCC1.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_131,FC(F)F.O=CO.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_241,N[SH](=O)=O.O=CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_238,CN.NC=O.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_233,C1CCNCC1.O=CO.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_196,FC(F)F.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_160,CN.CN1CCCCC1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_133,Br.N[SH](=O)=O.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_041,CN(C)CCOC(c1ccccc1)c2ccccc2,decoy,inactive,Beta-blocker compound
+DECOY_013,CN(C)CCCOc1ccc(C(CCl)(c2ccccc2)c2ccccc2)cc1,decoy,inactive,Chlorpheniramine analog
+DECOY_063,Br.CO.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_098,C1CCNCC1.F.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_084,CN.CN1CCCCC1.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+CDK_116,Cc1ccccc1.Cc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 82
+CDK_121,CCN(C)C.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 87
+CDK_206,CN1CCCCC1.FC(F)F.NC=O.O=CO,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_156,FC(F)F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_186,Br.C1CCNCC1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_182,CO.F.FC(F)F.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+CDK_128,C1CCNCC1.CC(C)C.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 94
+DECOY_116,Br.CO.Cl.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_233,N[SH](=O)=O.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_108,CCN(C)C.Clc1ccccc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 74
+DECOY_165,CN.CN1CCCCC1.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_143,C1CCNCC1.CN1CCCCC1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_134,CC(C)C.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 100
+DECOY_215,Br.CO.F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_045,Cc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 11
+CDK_250,Br.C1CCNCC1.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_066,CN1CCCCC1.Clc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 32
+DECOY_115,Br.C1CCNCC1.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_086,COc1ccccc1.Fc1ccccc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 52
+CDK_165,Br.FC(F)F.N[SH](=O)=O.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_142,N[SH](=O)=O.c1ccccc1.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_174,CO.FC(F)F.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_036,Cc1ccc(cc1Nc2ncccc2C(=O)O)C(F)(F)F,decoy,inactive,Beta-blocker compound
+DECOY_003,COC1=CC=C(C=C1)C(=O)C2=CC=C(C=C2)OC,decoy,inactive,Simple aromatic ketone
+CDK_036,CCN(C)C.Nc1ncnc(N)n1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 2
+CDK_029,Cn1nnc2c1c(=O)n(-c1ccccc1)c(=O)n2C,CDK_inhibitor,CDK2_active,R-roscovitine derivative analog 2
+DECOY_047,CN.CN1CCCCC1.Cl.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_019,CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O,decoy,inactive,Antiviral compound
+DECOY_183,Br.F.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_152,Br.NC=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_077,Br.CN1CCCCC1.Cl,decoy,inactive,Drug-like decoy compound
+CDK_096,C1CCNCC1.Cc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 62
+CDK_052,Cn1ccc2ncncc21.FC(F)(F)c1ccccc1.c1ccccc1.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 18
+DECOY_087,CN1CCCCC1.FC(F)F.NC=O.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_235,C1CCNCC1.FC(F)F.NC=O,decoy,inactive,Drug-like decoy compound
+DECOY_171,Br.CO.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_051,Br.CN.FC(F)F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_042,Cn1ncc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 8
+CDK_268,Br.C1CCNCC1.CN.Cl,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_237,CN1CCCCC1.O=CO.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_149,Br.FC(F)F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_114,Br.Cl.NC=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_170,C1CCNCC1.O=CO.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_190,CN1CCCCC1.Cl.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_005,CC1=CC(=CC(=C1)NC2=NC(=NC=C2)NC3=CC=C(C=C3)CN4CCN(CC4)C)C,CDK_inhibitor,CDK4/6_active,LEE011 analog
+DECOY_097,Br.C1CCNCC1.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+CDK_246,C1CCNCC1.CO.F.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_101,COc1ccccc1.Cn1ccc2ncncc21.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 67
+DECOY_080,C1CCNCC1.CN1CCCCC1.Cl.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_201,Br.CO.F.FC(F)F,decoy,inactive,Drug-like decoy compound
+DECOY_073,Br.C1CCNCC1.CN.CN1CCCCC1,decoy,inactive,Drug-like decoy compound
+DECOY_048,Br.CN.F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_099,CCN(C)C.Nc1nc(N)c2ccccc2n1.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 65
+CDK_185,Br.NC=O.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_152,FC(F)F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_062,COc1ccccc1.Nc1ncnc(N)n1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 28
+CDK_048,Nc1ncnc(N)n1.c1ccccc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 14
+CDK_033,CCCC(=O)N(C)c1ccc(-c2cnc(N)nc2N)cc1,CDK_inhibitor,CDK_active,AG-024322 analog analog 2
+DECOY_105,CN1CCCCC1.NC=O.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_195,CN1CCCCC1.N[SH](=O)=O.c1ccncc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_146,CN1CCCCC1.N[SH](=O)=O.O=CO.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_245,CN.CN1CCCCC1.O=CO.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_028,CCn1cnc2c1c(=O)n(-c1ccccc1)c(=O)n2C,CDK_inhibitor,CDK2_active,R-roscovitine derivative analog 1
+CDK_238,FC(F)F.N[SH](=O)=O.O=CO.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_158,C1CCNCC1.F.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_100,C1CCNCC1.CO.NC=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_118,Br.C1CCNCC1.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_039,CNCCC(Oc1ccc(C(F)(F)F)cc1)c2ccccc2,decoy,inactive,ACE inhibitor compound
+DECOY_198,CN1CCCCC1.FC(F)F.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_015,CCC(C)NCC(O)COc1ccccc1,decoy,inactive,Propranolol analog
+CDK_063,CCN(C)C.CN1CCCCC1.Nc1nc(N)c2ccccc2n1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 29
+DECOY_012,CCCCCCCCCCCCCCCCC(=O)O,decoy,inactive,Palmitic acid analog
+CDK_129,Nc1ncnc(Nc2ccccc2)n1.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 95
+DECOY_230,CN1CCCCC1.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_009,CCC(=O)NC1=CC=C(C=C1)C2=CN=C(N=C2N)N,CDK_inhibitor,CDK_active,AG-024322 analog
+CDK_194,CO.F.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_223,Br.CN1CCCCC1.CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_065,c1cncnc1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 31
+DECOY_125,C1CCNCC1.CN.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_005,CN(C)CCOC1=CC=C(C=C1)C(C2=CC=CC=C2)(C3=CC=CC=C3)CCl,decoy,inactive,Chlorpheniramine - antihistamine
+DECOY_033,Clc1ccc(C(c2ccccc2)N3CCN(C)CC3)cc1,decoy,inactive,Antifungal compound
+CDK_041,CN1CCCCC1.COc1ccccc1.Fc1ccccc1.Nc1ncnc(N)n1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 7
+DECOY_172,C1CCNCC1.CN1CCCCC1.F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_254,Cl.NC=O.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_228,Cl.FC(F)F.NC=O.N[SH](=O)=O,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_075,Br.FC(F)F.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_179,Br.CN.CN1CCCCC1.Cl,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_243,Br.CN.CN1CCCCC1.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_240,Br.FC(F)F.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_149,CO.FC(F)F.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_085,Br.CN1CCCCC1.CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_150,Br.C1CCNCC1.CN.FC(F)F,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_151,Br.FC(F)F.O=CO.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_186,C1CCNCC1.CN1CCCCC1.Cl.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_220,NC=O.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_169,CN1CCCCC1.O=CO.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_239,C1CCNCC1.CN1CCCCC1.F.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_237,C1CCNCC1.CN1CCCCC1.CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_127,Br.Cl.FC(F)F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_155,Br.Cl.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_106,CO.FC(F)F.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_066,F.FC(F)F.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_038,O=C(O)c1cc(Nc2ccccc2)ccc1O,decoy,inactive,Antifungal compound
+CDK_044,Fc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 10
+CDK_153,F.FC(F)F.NC=O.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_185,Br.C1CCNCC1.Cl.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+CDK_143,Br.CN1CCCCC1.O=CO.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_132,CN1CCCCC1.NC=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_099,CN.CN1CCCCC1.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_106,Cc1ccccc1.Nc1ncnc(Nc2ccccc2)n1.c1ccncc1.c1cncnc1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 72
+CDK_054,COc1ccccc1.Nc1nc2ccncc2[nH]1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 20
+CDK_224,Br.C1CCNCC1.FC(F)F,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_002,CC1=C(C=C(C=C1)NC2=NC=CC(=N2)NC3=CC=C(C=C3)C(=O)NCC4=CC=CC=N4)C,CDK_inhibitor,CDK4/6_active,Ribociclib - FDA approved CDK4/6 inhibitor
+DECOY_208,CN1CCCCC1.NC=O.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_260,CO.F.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_050,CCN(C)C.CN1CCCCC1.Cn1ccc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 16
+DECOY_194,CN.CN1CCCCC1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_081,C1CCNCC1.CCN(C)C.Nc1ncnc(N)n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 47
+DECOY_068,Br.Cl.O=CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_035,CC(C)C.CCN(C)C.FC(F)(F)c1ccccc1.Nc1ncnc(Nc2ccccc2)n1,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 1
+DECOY_103,NC=O.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_199,C1CCNCC1.CN1CCCCC1.F.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_163,CN1CCCCC1.N[SH](=O)=O.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_092,FC(F)(F)c1ccccc1.Nc1ncnc(N)n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 58
+DECOY_150,C1CCNCC1.CO.FC(F)F.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_227,Br.CN1CCCCC1.CO,decoy,inactive,Drug-like decoy compound
+CDK_053,CCN(C)C.CN1CCCCC1.Fc1ccccc1.c1ccc(Nc2ncnc(Nc3ccccc3)n2)cc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 19
+CDK_203,CN.N[SH](=O)=O.O=CO.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_104,CN.FC(F)F.N[SH](=O)=O.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_088,CN1CCCCC1.CO.Cl.NC=O,decoy,inactive,Drug-like decoy compound
+DECOY_004,CCCCCCCCCCCCCCCC(=O)O,decoy,inactive,Palmitic acid - fatty acid
+DECOY_137,CN1CCCCC1.NC=O.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_089,CN1CCCCC1.Nc1n[nH]c2ccccc12,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 55
+DECOY_175,C1CCNCC1.CO.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_177,Br.CN.O=CO.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_043,CN.CN1CCCCC1.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_196,CO.NC=O.N[SH](=O)=O.c1ccncc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_264,CN1CCCCC1.F.N[SH](=O)=O.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_011,CCC(=O)Oc1ccccc1C(=O)O,decoy,inactive,Aspirin analog
+DECOY_130,Br.FC(F)F.c1ccncc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_232,Br.C1CCNCC1.FC(F)F.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_191,CN1CCCCC1.CO.N[SH](=O)=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_166,CN1CCCCC1.CO.F.N[SH](=O)=O,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+CDK_055,Nc1n[nH]c2ccccc12.c1ccccc1,CDK_inhibitor,CDK2_active,Synthetic kinase inhibitor scaffold 21
+CDK_213,C1CCNCC1.FC(F)F.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_051,CCN(C)C.Cn1ccc2ncncc21,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 17
+DECOY_219,Br.CN1CCCCC1.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_050,C1CCNCC1.FC(F)F.O=CO,decoy,inactive,Drug-like decoy compound
+DECOY_212,CN1CCCCC1.CO.c1ccccc1.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_058,CN.CN1CCCCC1.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_267,CN.O=CO.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_056,CN1CCCCC1.Cl.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_046,Br.C1CCNCC1.NC=O,decoy,inactive,Drug-like decoy compound
+CDK_059,COc1ccccc1.Nc1n[nH]c2ccccc12,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 25
+CDK_049,C1CCNCC1.CC(C)C.Cn1ncc2ncncc21.c1ccccc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 15
+DECOY_153,C1CCNCC1.Cl.O=CO.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_162,CN1CCCCC1.c1ccccc1.c1cncnc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_094,FC(F)F.N[SH](=O)=O.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_022,Cc1ccc(N(C)c2nccc(Nc3ccc(C(=O)NCc4ccccn4)cc3)n2)cc1C,CDK_inhibitor,CDK4/6_active,Ribociclib analog 1
+DECOY_135,Br.CN1CCCCC1.Cl.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_249,N[SH](=O)=O.O=CO.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+DECOY_037,CC(=O)Nc1ccc(O)cc1,decoy,inactive,Diuretic compound
+DECOY_110,FC(F)F.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_210,CN1CCCCC1.CO.F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+DECOY_059,CO.FC(F)F.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_222,CN1CCCCC1.CO.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+DECOY_119,C1CCNCC1.CO.NC=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_191,Br.CN1CCCCC1.FC(F)F.c1ccncc1,decoy,inactive,Drug-like decoy compound
+CDK_202,C1CCNCC1.FC(F)F.N[SH](=O)=O.c1ccccc1,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_171,Br.C1CCNCC1.NC=O,CDK_inhibitor,CDK_active,Synthetic CDK inhibitor candidate
+CDK_188,Cl.FC(F)F.N[SH](=O)=O.O=CO,CDK_inhibitor,CDK2_active,Synthetic CDK inhibitor candidate
+DECOY_026,CCCC(C)NCC(O)COc1ccc(CC(N)=O)cc1,decoy,inactive,Beta-blocker compound
+CDK_131,CC(C)C.Cn1ccc2ncncc21,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 97
+DECOY_028,COc1ccc(CC(=O)O)cc1OCC(O)CNC(C)C,decoy,inactive,Antifungal compound
+CDK_210,C1CCNCC1.NC=O.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_100,CN1CCCCC1.CN1CCCCC1.c1ncc2[nH]ccc2n1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 66
+CDK_217,Br.CN.CN1CCCCC1,CDK_inhibitor,CDK4/6_active,Synthetic CDK inhibitor candidate
+CDK_088,CN1CCCCC1.COc1ccccc1.Clc1ccccc1.Cn1ncc2ncncc21,CDK_inhibitor,CDK9_active,Synthetic kinase inhibitor scaffold 54
+DECOY_221,C1CCNCC1.CN.N[SH](=O)=O.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_144,CN1CCCCC1.Cl.c1ccccc1,decoy,inactive,Drug-like decoy compound
+DECOY_074,Br.NC=O.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_224,C1CCNCC1.CN1CCCCC1.CO.c1ccccc1,decoy,inactive,Drug-like decoy compound
+CDK_122,CN1CCCCC1.Cn1ccc2ncncc21.FC(F)(F)c1ccccc1,CDK_inhibitor,CDK7_active,Synthetic kinase inhibitor scaffold 88
+DECOY_242,C1CCNCC1.CO.F.FC(F)F,decoy,inactive,Drug-like decoy compound
+CDK_021,CCN(C)c1ncnc2ccc(Nc3cccc(C#N)c3)cc12,CDK_inhibitor,CDK4/6_active,Palbociclib analog 1
+DECOY_057,Br.CN.FC(F)F.O=CO,decoy,inactive,Drug-like decoy compound
+CDK_072,CCN(C)C.Nc1ncnc(Nc2ccccc2)n1.c1ccncc1,CDK_inhibitor,CDK4/6_active,Synthetic kinase inhibitor scaffold 38
+CDK_107,Clc1ccccc1.Cn1ncc2ncncc21,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 73
+DECOY_107,CN1CCCCC1.N[SH](=O)=O.O=CO.c1cncnc1,decoy,inactive,Drug-like decoy compound
+DECOY_154,Br.FC(F)F.N[SH](=O)=O,decoy,inactive,Drug-like decoy compound
+DECOY_203,CO.FC(F)F.c1ccccc1.c1cncnc1,decoy,inactive,Drug-like decoy compound
+CDK_103,CC(C)C.Nc1nc(N)c2ccccc2n1,CDK_inhibitor,CDK_active,Synthetic kinase inhibitor scaffold 69
