@@ -24,13 +24,13 @@ import time
 import asyncio
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 import warnings
 warnings.filterwarnings('ignore')
 
 # RDKit imports
 from rdkit import Chem
-from rdkit.Chem import Descriptors, QED, AllChem, DataStructs
+from rdkit.Chem import Descriptors, QED, AllChem, DataStructs, FilterCatalog
 from rdkit.Chem.Scaffolds import MurckoScaffold
 import sqlite3
 import pickle
@@ -56,23 +56,35 @@ except ImportError as e:
     print("="*80 + "\n")
 
 # Configuration
+BASE_DIR = Path(__file__).resolve().parent
+
 CONFIG = {
     "boltz2_url": os.environ.get("BOLTZ2_URL", "http://localhost:8000"),
     "boltz2_api_key": os.environ.get("BOLTZ2_API_KEY", ""),
-    "chembl_data_path": "./chembl_data",
-    "similarity_threshold": 0.85,
+    "chembl_data_path": str(BASE_DIR / "chembl_data"),
+    "novelty_cutoff": 0.85,
     "top_n_compounds": 25,
-    "confidence_threshold": 0.7,
+    "confidence_threshold": 0.2,
     "weights": {
         "binding_affinity": 0.25,
         "selectivity": 0.15,
         "cdk11_avoidance": 0.20,
         "qed": 0.15,
         "sa": 0.10,
-        "toxicity": 0.10,
+        "pains": 0.10,
         "novelty": 0.05
     }
 }
+
+_CHEMBL_FP_CACHE = None
+
+
+def get_novelty_cutoff() -> float:
+    """Return the configured novelty similarity cutoff."""
+    return CONFIG.get("novelty_cutoff", 0.85)
+
+
+print(CONFIG)
 
 # CDK Protein Information
 CDK_PROTEIN_INFO = {
@@ -401,7 +413,7 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
                 print_rt(f"  IC50: {ic50_nm:.2f} nM")
             
             print_rt(f"\nConfidence: {confidence:.3f}")
-            print_rt(f"Accepted: {confidence >= confidence_threshold}")
+            print_rt(f"Accepted: {confidence >= 0.2}")
             
         else:
             # Fallback to mock if client not available
@@ -606,98 +618,125 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
     return df
 
 
-def predict_toxicity(smiles: str) -> Dict[str, float]:
-    """Mock toxicity prediction"""
-    # In production, this would call DualBind or similar
-    toxicity_endpoints = [
-        'hERG', 'Hepatotoxicity', 'Carcinogenicity', 
-        'Mutagenicity', 'Cytotoxicity'
-    ]
-    
-    results = {}
-    for endpoint in toxicity_endpoints:
-        results[endpoint] = np.random.uniform(0, 0.3)
-    
-    results['overall_toxicity'] = np.mean(list(results.values()))
-    return results
+def apply_pains_filter(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply PAINS filters and annotate compounds."""
+    print("Applying PAINS filters...")
 
+    params = FilterCatalog.FilterCatalogParams()
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_A)
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_B)
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_C)
+    catalog = FilterCatalog.FilterCatalog(params)
 
-def calculate_all_toxicities(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate toxicity predictions for all compounds"""
-    print("Calculating toxicity scores...")
-    
-    toxicity_data = []
-    for smiles in tqdm(df['canonical_smiles'], desc="Predicting toxicity"):
-        if pd.notna(smiles):
-            toxicity_data.append(predict_toxicity(smiles))
+    pains_flags = []
+    pains_matches = []
+
+    for mol in tqdm(df['mol'], desc="PAINS"):
+        if mol is None:
+            pains_flags.append(np.nan)
+            pains_matches.append([])
+            continue
+
+        if not catalog.HasMatch(mol):
+            pains_flags.append(False)
+            pains_matches.append([])
         else:
-            toxicity_data.append({'overall_toxicity': np.nan})
-    
-    toxicity_df = pd.DataFrame(toxicity_data)
-    df['toxicity_score'] = 1 - toxicity_df['overall_toxicity']
-    
+            matches = [entry.GetDescription() for entry in catalog.GetMatches(mol)]
+            pains_flags.append(True)
+            pains_matches.append(matches)
+
+    df['is_pains'] = pains_flags
+    df['pains_alerts'] = [list(filter(None, alerts)) for alerts in pains_matches]
+    df['pains_score'] = np.where(df['is_pains'] == True, 0.0, 1.0)
+
+    n_pains = (df['is_pains'] == True).sum()
+    print(f"PAINS-positive compounds: {n_pains}/{len(df)} ({n_pains/len(df)*100:.1f}%)")
+    if n_pains > 0:
+        print("Top PAINS alerts:")
+        alert_counts: Dict[str, int] = {}
+        for alerts in df.loc[df['is_pains'] == True, 'pains_alerts']:
+            for alert in alerts:
+                alert_counts[alert] = alert_counts.get(alert, 0) + 1
+        for alert, count in sorted(alert_counts.items(), key=lambda item: item[1], reverse=True)[:5]:
+            print(f"  {alert}: {count}")
+
     return df
 
 
 def load_chembl_fingerprints(chembl_path: str) -> Dict[str, object]:
-    """Load ChEMBL fingerprints from pickle file"""
+    """Load ChEMBL fingerprints from pickle file with caching."""
+    global _CHEMBL_FP_CACHE
+
+    if _CHEMBL_FP_CACHE is not None:
+        return _CHEMBL_FP_CACHE
+
     fp_path = os.path.join(chembl_path, "chembl_fingerprints.pkl")
-    
+
     if os.path.exists(fp_path):
         print(f"Loading ChEMBL fingerprints from {fp_path}...")
         with open(fp_path, 'rb') as f:
-            return pickle.load(f)
+            _CHEMBL_FP_CACHE = pickle.load(f)
     else:
         print("Warning: ChEMBL fingerprints not found. Using empty reference set.")
-        return {}
+        _CHEMBL_FP_CACHE = {}
+
+    return _CHEMBL_FP_CACHE
 
 
-def calculate_novelty_scores(df: pd.DataFrame, chembl_path: str = CONFIG["chembl_data_path"]) -> pd.DataFrame:
-    """Calculate novelty scores by comparing to ChEMBL database"""
+def calculate_novelty_scores(
+    df: pd.DataFrame,
+    chembl_path: str = CONFIG["chembl_data_path"],
+    similarity_cutoff: Optional[float] = None,
+) -> pd.DataFrame:
+    """Calculate novelty scores by comparing to ChEMBL database."""
+
     print("Calculating novelty scores...")
-    
-    # Load reference fingerprints
+
+    cutoff = similarity_cutoff if similarity_cutoff is not None else get_novelty_cutoff()
+
     reference_fps = load_chembl_fingerprints(chembl_path)
-    
+
     if not reference_fps:
         print("No reference compounds available. Setting all compounds as novel.")
-        df['max_chembl_similarity'] = 0
+        df['max_chembl_similarity'] = 0.0
         df['is_novel'] = True
         df['novelty_score'] = 1.0
         return df
-    
-    # Calculate fingerprints for query compounds
-    query_fps = []
+
+    query_fps: List[Optional[DataStructs.ExplicitBitVect]] = []
     for mol in df['mol']:
         if mol is not None:
             fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
             query_fps.append(fp)
         else:
             query_fps.append(None)
-    
-    # Calculate novelty
-    max_similarities = []
-    
+
+    max_similarities: List[float] = []
+    reference_fp_values = list(reference_fps.values())
+
     for query_fp in tqdm(query_fps, desc="Computing novelty"):
         if query_fp is None:
             max_similarities.append(np.nan)
             continue
-        
-        max_sim = 0
-        for chembl_id, ref_fp in reference_fps.items():
+
+        max_sim = 0.0
+        for ref_fp in reference_fp_values:
             sim = DataStructs.TanimotoSimilarity(query_fp, ref_fp)
             if sim > max_sim:
                 max_sim = sim
-        
+                if max_sim >= cutoff:
+                    break
+
         max_similarities.append(max_sim)
-    
+
     df['max_chembl_similarity'] = max_similarities
-    df['is_novel'] = df['max_chembl_similarity'] < CONFIG['similarity_threshold']
-    df['novelty_score'] = df['is_novel'].astype(float)
-    
+    df['is_novel'] = df['max_chembl_similarity'] < cutoff
+    df['novelty_score'] = 1.0 - df['max_chembl_similarity'].fillna(cutoff).clip(upper=cutoff) / cutoff
+    df.loc[~df['is_novel'], 'novelty_score'] = 0.0
+
     n_novel = df['is_novel'].sum()
-    print(f"Novel compounds: {n_novel}/{len(df)} ({n_novel/len(df)*100:.1f}%)")
-    
+    print(f"Novel compounds: {n_novel}/{len(df)} ({n_novel/len(df)*100:.1f}%) using cutoff {cutoff:.2f}")
+
     return df
 
 
@@ -709,7 +748,7 @@ def normalize_scores(df: pd.DataFrame) -> pd.DataFrame:
         'cdk11_avoidance': lambda x: x,
         'qed_score': lambda x: x,
         'sa_score_normalized': lambda x: x,
-        'toxicity_score': lambda x: x,
+        'pains_score': lambda x: x,
         'novelty_score': lambda x: x
     }
     
@@ -730,7 +769,7 @@ def calculate_composite_scores(df: pd.DataFrame) -> pd.DataFrame:
         'cdk11_avoidance': 'cdk11_avoidance_norm',
         'qed': 'qed_score_norm',
         'sa': 'sa_score_normalized_norm',
-        'toxicity': 'toxicity_score_norm',
+        'pains': 'pains_score_norm',
         'novelty': 'novelty_score_norm'
     }
     
@@ -752,7 +791,7 @@ def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Pa
     
     # 1. Score distributions
     ax1 = plt.subplot(4, 2, 1)
-    score_cols = ['qed_score', 'sa_score_normalized', 'toxicity_score', 'novelty_score']
+    score_cols = ['qed_score', 'sa_score_normalized', 'pains_score', 'novelty_score']
     valid_cols = [col for col in score_cols if col in df.columns]
     if valid_cols:
         df[valid_cols].boxplot(ax=ax1)
@@ -776,23 +815,32 @@ def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Pa
     ax3 = plt.subplot(4, 2, 3)
     top_25 = df.nsmallest(25, 'rank')
     if 'qed_score' in df.columns and 'on_target_pic50' in df.columns:
-        scatter = ax3.scatter(top_25['qed_score'], top_25['on_target_pic50'], 
-                             c=top_25['composite_score'], s=100, cmap='viridis')
-        ax3.set_xlabel('QED Score')
-        ax3.set_ylabel('On-target pIC50')
-        ax3.set_title('Top 25 Compounds: QED vs Potency', fontsize=14)
-        plt.colorbar(scatter, ax=ax3, label='Composite Score')
+        valid = top_25[['qed_score', 'on_target_pic50', 'composite_score']].dropna()
+        if not valid.empty:
+            scatter = ax3.scatter(valid['qed_score'], valid['on_target_pic50'], 
+                                 c=valid['composite_score'], s=100, cmap='viridis')
+            ax3.set_xlabel('QED Score')
+            ax3.set_ylabel('On-target pIC50')
+            ax3.set_title('Top 25 Compounds: QED vs Potency', fontsize=14)
+            plt.colorbar(scatter, ax=ax3, label='Composite Score')
+        else:
+            ax3.set_visible(False)
     
     # 4. Novelty distribution
     ax4 = plt.subplot(4, 2, 4)
     if 'max_chembl_similarity' in df.columns:
-        df['max_chembl_similarity'].hist(bins=30, ax=ax4, alpha=0.7)
-        ax4.axvline(CONFIG['similarity_threshold'], color='red', linestyle='--', 
-                    label=f'Threshold ({CONFIG["similarity_threshold"]})')
-        ax4.set_xlabel('Max ChEMBL Similarity')
-        ax4.set_ylabel('Count')
-        ax4.set_title('Novelty Distribution', fontsize=14)
-        ax4.legend()
+        valid_novelty = df['max_chembl_similarity'].dropna()
+        if not valid_novelty.empty:
+            valid_novelty.hist(bins=30, ax=ax4, alpha=0.7)
+            novelty_cutoff = get_novelty_cutoff()
+            ax4.axvline(novelty_cutoff, color='red', linestyle='--', 
+                        label=f'Cutoff ({novelty_cutoff:.2f})')
+            ax4.set_xlabel('Max ChEMBL Similarity')
+            ax4.set_ylabel('Count')
+            ax4.set_title('Novelty Distribution', fontsize=14)
+            ax4.legend()
+        else:
+            ax4.set_visible(False)
     
     # 5. Composite score distribution
     ax5 = plt.subplot(4, 2, 5)
@@ -840,7 +888,7 @@ def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Pa
                 'cdk11_avoidance': 'cdk11_avoidance_norm',
                 'qed': 'qed_score_norm',
                 'sa': 'sa_score_normalized_norm',
-                'toxicity': 'toxicity_score_norm',
+                'pains': 'pains_score_norm',
                 'novelty': 'novelty_score_norm'
             }
             if col_map.get(weight_key) in df.columns:
@@ -874,7 +922,8 @@ def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
     summary_cols = [
         'rank', 'compound_id', 'canonical_smiles', 'composite_score',
         'on_target_pic50', 'on_target_ic50_nm', 'selectivity_ratio', 
-        'cdk11_avoidance', 'qed_score', 'sa_score', 'toxicity_score', 'novelty_score'
+        'cdk11_avoidance', 'qed_score', 'sa_score', 'pains_score', 'novelty_score',
+        'pains_alerts'
     ]
     valid_cols = [col for col in summary_cols if col in top_25.columns]
     
@@ -898,13 +947,15 @@ def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
         
         f.write("Top 5 Compounds:\n")
         for idx, row in top_25.head(5).iterrows():
-            f.write(f"{int(row['rank'])}. {row['compound_id']} - Score: {row['composite_score']:.3f}\n")
+            rank_value = row['rank']
+            rank_display = int(rank_value) if pd.notna(rank_value) else 'N/A'
+            f.write(f"{rank_display}. {row['compound_id']} - Score: {row['composite_score']:.3f}\n")
             if 'on_target_ic50_nm' in row:
                 f.write(f"   IC50: CDK4/6={row['on_target_ic50_nm']:.1f}nM, ")
                 f.write(f"CDK11={df.loc[idx, 'CDK11_ic50_nm']:.1f}nM\n")
         
         f.write(f"\nMedian Scores:\n")
-        for score_name in ['qed_score', 'sa_score_normalized', 'toxicity_score', 
+        for score_name in ['qed_score', 'sa_score_normalized', 'pains_score', 
                           'novelty_score', 'composite_score']:
             if score_name in df.columns:
                 f.write(f"  {score_name}: {df[score_name].median():.3f}\n")
@@ -922,12 +973,18 @@ def main():
                         help="Output directory for results")
     parser.add_argument("--chembl-path", default="./chembl_data",
                         help="Path to ChEMBL database")
-    parser.add_argument("--skip-toxicity", action="store_true",
-                        help="Skip toxicity predictions")
+    parser.add_argument("--skip-pains", action="store_true",
+                        help="Skip PAINS filtering")
     parser.add_argument("--skip-novelty", action="store_true",
                         help="Skip novelty assessment")
     parser.add_argument("--confidence-threshold", type=float, default=0.7,
                         help="Minimum confidence for IC50 predictions")
+    parser.add_argument("--boltz2-url", default=CONFIG["boltz2_url"],
+                        help="Base URL for the Boltz2 NIM endpoint")
+    parser.add_argument("--novelty-cutoff", type=float, default=CONFIG["novelty_cutoff"],
+                        help="Maximum Tanimoto similarity to ChEMBL allowed before a compound is considered non-novel")
+    parser.add_argument("--skip-boltz2", action="store_true",
+                        help="Skip Boltz2 affinity predictions and use placeholder values")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show detailed Boltz2 prediction requests and responses")
     
@@ -936,6 +993,8 @@ def main():
     # Update config with command-line arguments
     CONFIG["chembl_data_path"] = args.chembl_path
     CONFIG["confidence_threshold"] = args.confidence_threshold
+    CONFIG["novelty_cutoff"] = args.novelty_cutoff
+    CONFIG["boltz2_url"] = args.boltz2_url
     
     # Create output directory
     output_dir = Path(args.output_dir)
@@ -961,17 +1020,35 @@ def main():
     df = calculate_sa_scores(df)
     
     # Calculate binding affinities
-    df = calculate_all_binding_affinities(df, verbose=args.verbose)
-    
-    # Calculate toxicity
-    if not args.skip_toxicity:
-        df = calculate_all_toxicities(df)
+    if args.skip_boltz2:
+        for target in ["CDK4", "CDK6", "CDK11"]:
+            df[f"{target}_ic50_nm"] = np.nan
+            df[f"{target}_pic50"] = np.nan
+            df[f"{target}_confidence"] = np.nan
+            df[f"{target}_prediction_accepted"] = False
+        df['on_target_pic50'] = np.nan
+        df['on_target_ic50_nm'] = np.nan
+        df['selectivity_ratio'] = np.nan
+        df['cdk11_avoidance'] = np.nan
     else:
-        df['toxicity_score'] = 0.5  # Neutral score
+        df = calculate_all_binding_affinities(df, verbose=args.verbose)
     
+    # Apply PAINS filtering
+    if not args.skip_pains:
+        df = apply_pains_filter(df)
+    else:
+        df['is_pains'] = False
+        df['pains_score'] = 1.0
+    
+    # Keep only non-PAINS compounds for scoring
+    df = df[df['is_pains'] != True].copy()
+    if len(df) == 0:
+        print("Error: All compounds flagged as PAINS. No compounds to score.")
+        return 1
+
     # Calculate novelty
     if not args.skip_novelty:
-        df = calculate_novelty_scores(df)
+        df = calculate_novelty_scores(df, similarity_cutoff=CONFIG["novelty_cutoff"])
     else:
         df['novelty_score'] = 0.5  # Neutral score
     

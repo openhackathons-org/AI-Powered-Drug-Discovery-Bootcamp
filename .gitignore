@@ -3,4 +3,13 @@
 **/.DS_store
 **/scoring-dev
 **/scoring-np
-**/chembl_data
+**/evaluation_results/
+**/evaluation_output/
+**/affinities.json
+**/prediction_metadata.json
+**/structure_0.cif
+**/*.BAK
+scoring/cdk_inhibitors_dataset copy.csv
+cdk_inhibitors_dataset.csv
+scoring/chembl_data/chembl_compounds.db
+scoring/chembl_data/chembl_35_chemreps.txt

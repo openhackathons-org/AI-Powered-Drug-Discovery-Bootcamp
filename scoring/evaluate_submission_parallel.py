@@ -20,9 +20,12 @@ import argparse
 import os
 import sys
 import asyncio
+import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlparse, urlunparse
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -32,6 +35,7 @@ try:
     from rdkit.Chem import Descriptors, QED, Crippen
     from rdkit.Chem.rdMolDescriptors import CalcNumRotatableBonds
     from rdkit.Chem import rdMolDescriptors
+    from rdkit.Chem import AllChem, DataStructs, FilterCatalog
     RDKIT_AVAILABLE = True
 except ImportError:
     print("Warning: RDKit not available. Install with: pip install rdkit-pypi")
@@ -55,6 +59,7 @@ except ImportError:
 # Configuration
 CONFIG = {
     "endpoints": [8000, 8001, 8002],  # Default ports for Boltz2 NIM instances
+    "boltz2_url": os.environ.get("BOLTZ2_URL", "http://localhost:8000"),
     "max_workers": 6,  # Maximum concurrent workers
     "api_timeout": 300,  # Timeout for API calls in seconds
     "confidence_threshold": 0.7,
@@ -63,11 +68,157 @@ CONFIG = {
         "cdk11_avoidance": 0.25,
         "qed": 0.15,
         "sa_score": 0.15,
-        "toxicity": 0.05,
+        "pains": 0.05,
         "novelty": 0.05
     },
-    "chembl_data_path": "./openhackathon/chembl_data"
+    "chembl_data_path": str(Path(__file__).resolve().parent / "chembl_data"),
+    "novelty_cutoff": 0.85
 }
+
+if RDKIT_AVAILABLE:
+    ExplicitBitVect = DataStructs.ExplicitBitVect  # type: ignore[attr-defined]
+else:
+    ExplicitBitVect = object
+
+_CHEMBL_FP_CACHE: Optional[Dict[str, ExplicitBitVect]] = None
+
+
+def get_novelty_cutoff() -> float:
+    return CONFIG.get("novelty_cutoff", 0.85)
+
+
+def load_chembl_fingerprints(chembl_path: str) -> Dict[str, ExplicitBitVect]:
+    global _CHEMBL_FP_CACHE
+
+    if _CHEMBL_FP_CACHE is not None:
+        return _CHEMBL_FP_CACHE
+
+    fp_path = os.path.join(chembl_path, "chembl_fingerprints.pkl")
+
+    if os.path.exists(fp_path):
+        print(f"Loading ChEMBL fingerprints from {fp_path}...")
+        with open(fp_path, "rb") as f:
+            _CHEMBL_FP_CACHE = pickle.load(f)
+    else:
+        print("Warning: ChEMBL fingerprints not found. Using empty reference set.")
+        _CHEMBL_FP_CACHE = {}
+
+    return _CHEMBL_FP_CACHE
+
+
+def calculate_novelty_scores(
+    df: pd.DataFrame,
+    chembl_path: str,
+    similarity_cutoff: Optional[float] = None,
+) -> pd.DataFrame:
+    if not RDKIT_AVAILABLE:
+        df['max_chembl_similarity'] = np.nan
+        df['is_novel'] = True
+        df['novelty_normalized'] = 0.5
+        return df
+
+    cutoff = similarity_cutoff if similarity_cutoff is not None else get_novelty_cutoff()
+    reference_fps = load_chembl_fingerprints(chembl_path)
+
+    if not reference_fps:
+        print("No reference compounds available. Marking all compounds as novel.")
+        df['max_chembl_similarity'] = 0.0
+        df['is_novel'] = True
+        df['novelty_normalized'] = 1.0
+        return df
+
+    query_fps: List[Optional[ExplicitBitVect]] = []
+    for smiles in df['smiles']:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is not None:
+            query_fps.append(AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048))
+        else:
+            query_fps.append(None)
+
+    max_similarities: List[float] = []
+    reference_fp_values = list(reference_fps.values())
+
+    for query_fp in tqdm(query_fps, desc="Novelty scoring") if TQDM_AVAILABLE else query_fps:
+        if query_fp is None:
+            max_similarities.append(np.nan)
+            continue
+
+        max_sim = 0.0
+        for ref_fp in reference_fp_values:
+            sim = DataStructs.TanimotoSimilarity(query_fp, ref_fp)
+            if sim > max_sim:
+                max_sim = sim
+                if max_sim >= cutoff:
+                    break
+
+        max_similarities.append(max_sim)
+
+    df['max_chembl_similarity'] = max_similarities
+    df['is_novel'] = df['max_chembl_similarity'] < cutoff
+    df['novelty_normalized'] = 1.0 - df['max_chembl_similarity'].fillna(cutoff).clip(upper=cutoff) / cutoff
+    df.loc[~df['is_novel'], 'novelty_normalized'] = 0.0
+
+    n_novel = df['is_novel'].sum()
+    print(f"Novel compounds: {n_novel}/{len(df)} ({(n_novel/len(df))*100:.1f}%) using cutoff {cutoff:.2f}")
+
+    return df
+
+
+def apply_pains_filter_parallel(df: pd.DataFrame) -> pd.DataFrame:
+    if not RDKIT_AVAILABLE:
+        df['is_pains'] = False
+        df['pains_score'] = 1.0
+        df['pains_score_norm'] = 1.0
+        df['pains_alerts'] = [[] for _ in range(len(df))]
+        return df
+
+    print("Applying PAINS filters...")
+
+    params = FilterCatalog.FilterCatalogParams()
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_A)
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_B)
+    params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_C)
+    catalog = FilterCatalog.FilterCatalog(params)
+
+    pains_flags = []
+    pains_matches = []
+
+    mols = []
+    for smiles in df['smiles']:
+        mol = Chem.MolFromSmiles(smiles)
+        mols.append(mol)
+
+    for mol in tqdm(mols, desc="PAINS") if TQDM_AVAILABLE else mols:
+        if mol is None:
+            pains_flags.append(np.nan)
+            pains_matches.append([])
+            continue
+
+        if not catalog.HasMatch(mol):
+            pains_flags.append(False)
+            pains_matches.append([])
+        else:
+            matches = [entry.GetDescription() for entry in catalog.GetMatches(mol)]
+            pains_flags.append(True)
+            pains_matches.append(matches)
+
+    df['is_pains'] = pains_flags
+    df['pains_alerts'] = [list(filter(None, alerts)) for alerts in pains_matches]
+    df['pains_score'] = np.where(df['is_pains'] == True, 0.0, 1.0)
+    df['pains_score_norm'] = df['pains_score']
+
+    n_pains = (df['is_pains'] == True).sum()
+    print_rt(f"PAINS-positive compounds: {n_pains}/{len(df)} ({n_pains/len(df)*100:.1f}%)")
+    if n_pains > 0:
+        print_rt("Top PAINS alerts:")
+        alert_counts: Dict[str, int] = {}
+        for alerts in df.loc[df['is_pains'] == True, 'pains_alerts']:
+            for alert in alerts:
+                alert_counts[alert] = alert_counts.get(alert, 0) + 1
+        for alert, count in sorted(alert_counts.items(), key=lambda item: item[1], reverse=True)[:5]:
+            print_rt(f"  {alert}: {count}")
+
+    return df
 
 # Protein sequences for CDK targets
 CDK_PROTEIN_INFO = {
@@ -82,11 +233,20 @@ CDK_PROTEIN_INFO = {
     }
 }
 
+# Endpoint management
+
+
 class EndpointPool:
     """Manages a pool of Boltz2 endpoints with health checking and load balancing"""
     
     def __init__(self, endpoints: List[int], timeout: int = 300):
-        self.endpoints = [f"http://localhost:{port}" for port in endpoints]
+        base = urlparse(CONFIG["boltz2_url"])
+        if not base.scheme or not base.netloc:
+            raise ValueError(f"Invalid Boltz2 base URL: {CONFIG['boltz2_url']}")
+        self.endpoints = [
+            urlunparse((base.scheme, f"{base.hostname}:{port}", base.path, base.params, base.query, base.fragment))
+            for port in endpoints
+        ]
         self.timeout = timeout
         self.healthy_endpoints = []
         self.clients = {}
@@ -298,36 +458,21 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
                 print_rt(f"[Worker {worker_id}]   SMILES: {smiles}")
                 print_rt(f"[Worker {worker_id}]   Target: {protein_target}")
                 print_rt(f"[Worker {worker_id}]   Sequence length: {len(CDK_PROTEIN_INFO[protein_target]['sequence'])} residues")
-            
+
             raise RuntimeError(error_msg)
-    
-            
-            total_time = time.time() - start_time
-            
-            return {
-                'ic50_nm': ic50_nm,
-                'pic50': pic50,
-                'confidence': confidence,
-                'accepted': confidence >= confidence_threshold,
-                'api_time': api_time,
-                'total_time': total_time,
-                'endpoint': endpoint,
-                'worker_id': worker_id
-            }
-            
-        else:
-            # No mock fallback - raise error if no valid client/endpoint
-            error_msg = f"No valid Boltz2 client available for prediction"
-            if verbose:
-                print_rt(f"[Worker {worker_id}] ❌ PREDICTION FAILED")
-                print_rt(f"[Worker {worker_id}] Error: {error_msg}")
-                print_rt(f"[Worker {worker_id}] Reason: BOLTZ2_AVAILABLE={BOLTZ2_AVAILABLE}, client={client is not None}, endpoint={endpoint}")
-                print_rt(f"[Worker {worker_id}] \nINPUT DETAILS:")
-                print_rt(f"[Worker {worker_id}]   SMILES: {smiles}")
-                print_rt(f"[Worker {worker_id}]   Target: {protein_target}")
-                print_rt(f"[Worker {worker_id}]   Sequence length: {len(CDK_PROTEIN_INFO[protein_target]['sequence'])} residues")
-            
-            raise RuntimeError(error_msg)
+
+        total_time = time.time() - start_time
+
+        return {
+            'ic50_nm': ic50_nm,
+            'pic50': pic50,
+            'confidence': confidence,
+            'accepted': confidence >= confidence_threshold,
+            'api_time': api_time,
+            'total_time': total_time,
+            'endpoint': endpoint,
+            'worker_id': worker_id
+        }
     
     except Exception as e:
         if verbose:
@@ -511,7 +656,7 @@ def normalize_scores(df: pd.DataFrame) -> pd.DataFrame:
         df['cdk11_avoidance_normalized'] = 0.5
     
     # Other scores are already normalized or set defaults
-    for score_type in ['qed', 'sa_score', 'toxicity', 'novelty']:
+    for score_type in ['qed', 'sa_score', 'pains_score', 'novelty']:
         norm_col = f'{score_type}_normalized'
         if norm_col not in df.columns:
             df[norm_col] = 0.5
@@ -527,7 +672,7 @@ def calculate_composite_scores(df: pd.DataFrame) -> pd.DataFrame:
     # Ensure all normalized columns exist
     required_cols = [
         'binding_affinity_normalized', 'cdk11_avoidance_normalized',
-        'qed_normalized', 'sa_score_normalized', 'toxicity_normalized', 'novelty_normalized'
+        'qed_normalized', 'sa_score_normalized', 'pains_score_norm', 'novelty_normalized'
     ]
     
     for col in required_cols:
@@ -539,7 +684,7 @@ def calculate_composite_scores(df: pd.DataFrame) -> pd.DataFrame:
         df['cdk11_avoidance_normalized'] * weights['cdk11_avoidance'] +
         df['qed_normalized'] * weights['qed'] +
         df['sa_score_normalized'] * weights['sa_score'] +
-        df['toxicity_normalized'] * weights['toxicity'] +
+        df['pains_score_norm'] * weights['pains'] +
         df['novelty_normalized'] * weights['novelty']
     )
     
@@ -601,6 +746,9 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
                         <th>Selectivity Ratio</th>
                         <th>QED</th>
                         <th>SA Score</th>
+                        <th>PAINS Alerts</th>
+                        <th>Max ChEMBL Similarity</th>
+                        <th>Novel</th>
                         <th>Processing Endpoint</th>
                     </tr>
                 </thead>
@@ -622,6 +770,9 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
                         <td>{row.get('selectivity_ratio', 0):.2f}</td>
                         <td>{row.get('qed', 0):.3f}</td>
                         <td>{row.get('sa_score', 0):.2f}</td>
+                        <td>{'; '.join(row.get('pains_alerts', [])) if row.get('is_pains', False) else 'None'}</td>
+                        <td>{row.get('max_chembl_similarity', float('nan')):.2f}</td>
+                        <td>{'Yes' if row.get('is_novel', False) else 'No'}</td>
                         <td>{endpoint}</td>
                     </tr>
         """
@@ -647,10 +798,16 @@ async def main():
                        help='Maximum number of concurrent workers (default: 6)')
     parser.add_argument('--output-dir', default='evaluation_output',
                        help='Output directory for results')
-    parser.add_argument('--skip-toxicity', action='store_true',
-                       help='Skip toxicity calculations')
+    parser.add_argument('--skip-pains', action='store_true',
+                       help='Skip PAINS filtering')
     parser.add_argument('--skip-novelty', action='store_true',
                        help='Skip novelty calculations')
+    parser.add_argument('--novelty-cutoff', type=float, default=CONFIG["novelty_cutoff"],
+                       help='Maximum Tanimoto similarity allowed before a compound is considered non-novel')
+    parser.add_argument('--boltz2-url', default=CONFIG["boltz2_url"],
+                       help='Base URL for the Boltz2 NIM endpoint (default: http://localhost:8000)')
+    parser.add_argument('--skip-boltz2', action='store_true',
+                       help='Skip Boltz2 predictions and use placeholder affinity values')
     parser.add_argument('--verbose', action='store_true',
                        help='Enable verbose output')
     
@@ -660,8 +817,11 @@ async def main():
     endpoint_ports = [int(port.strip()) for port in args.endpoints.split(',')]
     CONFIG["endpoints"] = endpoint_ports
     CONFIG["max_workers"] = args.max_workers
+    CONFIG["novelty_cutoff"] = args.novelty_cutoff
+    CONFIG["boltz2_url"] = args.boltz2_url
     
     print_rt(f"Starting parallel evaluation for team: {args.team_name}")
+    print_rt(f"Boltz2 base URL: {CONFIG['boltz2_url']}")
     print_rt(f"Using endpoints: {endpoint_ports}")
     print_rt(f"Max workers: {args.max_workers}")
     
@@ -683,27 +843,44 @@ async def main():
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
     
-    # Initialize endpoint pool
-    endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
-    await endpoint_pool.initialize()
-    
     start_time = time.time()
     
-    # Calculate binding affinities in parallel
-    df = await calculate_all_binding_affinities_parallel(
-        df, endpoint_pool, args.max_workers, args.verbose
-    )
+    if args.skip_boltz2:
+        print_rt("Skipping Boltz2 predictions (using placeholder affinity values)")
+        for target in ["CDK4", "CDK6", "CDK11"]:
+            df[f"{target}_ic50_nm"] = np.nan
+            df[f"{target}_pic50"] = np.nan
+            df[f"{target}_confidence"] = np.nan
+            df[f"{target}_accepted"] = False
+        df['on_target_pic50'] = np.nan
+        df['cdk11_avoidance'] = np.nan
+        df['selectivity_ratio'] = np.nan
+    else:
+        # Initialize endpoint pool
+        endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
+        await endpoint_pool.initialize()
+        
+        # Calculate binding affinities in parallel
+        df = await calculate_all_binding_affinities_parallel(
+            df, endpoint_pool, args.max_workers, args.verbose
+        )
     
     # Calculate other scores
     df = calculate_qed_scores(df)
     df = calculate_sa_scores(df)
-    
-    # Set default scores for skipped calculations
-    if args.skip_toxicity:
-        df['toxicity_normalized'] = 0.5
-        print_rt("Skipping toxicity calculations (set to neutral score)")
-    
-    if args.skip_novelty:
+
+    if not args.skip_pains:
+        df = apply_pains_filter_parallel(df)
+    else:
+        df['is_pains'] = False
+        df['pains_score'] = 1.0
+        print_rt("Skipping PAINS filtering (set to non-PAINS)")
+
+    if not args.skip_novelty:
+        df = calculate_novelty_scores(df, CONFIG["chembl_data_path"], CONFIG["novelty_cutoff"])
+    else:
+        df['max_chembl_similarity'] = np.nan
+        df['is_novel'] = True
         df['novelty_normalized'] = 0.5
         print_rt("Skipping novelty calculations (set to neutral score)")
     

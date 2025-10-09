@@ -1,0 +1,14 @@
+ChEMBL Database Creation Summary
+================================
+Created at: 2025-08-06 17:53:53
+Source: ChEMBL 35 Chemical Representations
+Total compounds processed: 2474590
+Valid compounds with fingerprints: 2474589
+Compounds in database: 2474589
+Database path: chembl_data/chembl_compounds.db
+Fingerprints path: chembl_data/chembl_fingerprints.pkl
+
+Fingerprint specifications:
+- Type: Morgan (circular)
+- Radius: 2
+- Bits: 2048
