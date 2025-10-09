@@ -1,30 +1,23 @@
 # BioNeMo Bootcamp
 
-## What is NVIDIA BioNeMo?
+## Welcome to the BioNeMo Bootcamp and Hackathon Challenge
 
-NVIDIA BioNeMo is a groundbreaking AI platform designed specifically for computational biology and drug discovery. It provides state-of-the-art generative AI models and tools that accelerate the identification and optimization of therapeutic compounds. BioNeMo leverages advanced machine learning techniques, including transformer-based architectures, to understand and generate molecular structures with unprecedented accuracy and efficiency.
+NVIDIA BioNeMo is a computational drug discovery platform built for developers and data scientists. BioNeMo provides an open-source machine learning framework for building and training deep learning models, and a set of optimized and easy-to-use NIM microservices for deploying AI workflows at scale.  BioNeMo NIM microservices are constructed as containers with everything needed for efficient, portable deployment and easy API integration into enterprise-grade AI applications.
 
-Key capabilities of BioNeMo include:
-- **Molecular Generation**: Create novel molecular structures with desired properties
-- **Property Prediction**: Predict chemical and biological properties of molecules
-- **Molecular Optimization**: Optimize existing molecules for improved drug-like characteristics
-- **Large-Scale Processing**: Handle massive molecular datasets efficiently
-
-## Welcome to the BioNeMo Bootcamp with Challenge
-
-This bootcamp combines comprehensive tutorials with an exciting hackathon challenge, giving you hands-on experience with NVIDIA's cutting-edge AI tools for drug discovery. You'll learn to harness the power of MolMIM (Molecular Masked Image Modeling) to generate and optimize novel molecular structures.
+This bootcamp combines comprehensive tutorials with a cutting-edge hackathon challenge, giving you hands-on experience with NVIDIA BioNeMo's tools for AI-enabled drug discovery. You'll learn to harness the power of MolMIM, a generative model for small-molecule drug discovery.  MolMIM is a probabilistic auto-encoder trained with Mutual Information Machine (MIM) learning designed to learn an informative and clustered latent space.  By leveraging targeted optimization with scoring oracles, you will learn how to explore MolMIM's dense latent-space representation of chemical space to generate and optimize novel molecular structures.
 
 ## Repository Structure
 
+At the top level, you'll find detailed instructions for deploying the MolMIM NIM in [`deployment.md`](deployment.md) and all the required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once you have the basics in place, you can follow along with the Tutorials and Challenge.
+
 ### 📚 Tutorials
-The `tutorials/` folder contains everything you need to get started:
+The [`tutorials/`](tutorials/) folder contains everything you need to get started:
+- **Container Setup**: Step-by-step deployment guide (`container_setup.ipynb`)
 - **Lab 1**: Fundamental MolMIM operations (clustering, generation, interpolation)
 - **Lab 2**: Advanced techniques with custom oracles, optimization, and guided molecule generation
-- **Container Setup**: Step-by-step deployment guide (`container_setup.ipynb`)
-- **Requirements**: All necessary dependencies for the environment (`requirements.txt`)
 
 ### 🏆 Challenge
-The `challenge/` folder contains the hackathon challenge where you'll apply your knowledge to solve real drug discovery problems.
+The [`challenge/`](challenge/) folder contains the hackathon challenge where you'll apply your knowledge to solve real drug discovery problems.
 
 ## Bootcamp Objectives
 
@@ -38,10 +31,9 @@ By the end of this workshop, participants will:
 
 ## Getting Started
 
-1. **Setup Environment**: Follow the deployment guide in `deployment.md` or the detailed container setup in `tutorials/container_setup.ipynb`
-2. **Install Dependencies**: Use `deployment_requirementsrequirements.txt` for package installation
-3. **Complete Tutorials**: Work through Lab 1 and Lab 2 in the tutorials folder
-4. **Take the Challenge**: Apply your skills in the challenge folder
+1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md) or the detailed container setup in [`tutorials/container_setup.ipynb`](tutorials/container_setup.ipynb)
+3. **Complete Tutorials**: Work through Lab 1 and Lab 2 in the [`tutorials/`](tutorials/) folder
+4. **Take the Challenge**: Apply your skills in the [`challenge/`](challenge/) folder
 
 ## Quick Start
 

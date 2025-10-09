@@ -9,6 +9,14 @@ Before starting, ensure you have:
 - NGC API key from [NVIDIA NGC](https://org.ngc.nvidia.com/setup/api-key)
 - Docker installed and running
 
+## Getting Started
+
+1. Complete the container setup tutorial for detailed deployment instructions
+2. Work through Lab 1 to understand MolMIM fundamentals
+3. Advance to Lab 2 for guided generation with custom scoring oracles
+4. Take on the Challenge to apply your skills
+
+
 ## Setup Instructions
 
 Please refer to the [NVIDIA MolMIM NIM docs](https://docs.nvidia.com/nim/bionemo/molmim/latest/index.html) and [QuickStart guide](https://docs.nvidia.com/nim/bionemo/molmim/latest/quickstart-guide.html) for comprehensive information. Additional examples showcasing MolMIM capabilities like clustering molecules and interpolating between molecular structures are available in the [endpoint documentation](https://docs.nvidia.com/nim/bionemo/molmim/latest/endpoints.html#notebooks).
@@ -36,37 +44,31 @@ docker run --rm -it --name molmim --runtime=nvidia \
 
 ### Step 3: Setup Python Environment
 
-Clone this repository, optionally set up a python virtual environment, and install dependencies:
+Clone this repository; optionally set up a python virtual environment, and install dependencies:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/openhackathons-org/Bootcamp-BioNemo.git
 cd Bootcamp-BioNemo
 python3 -m venv venv
 source venv/bin/activate
-pip install -r tutorials/requirements.txt
+pip install -r tutorials/deployment-requirements.txt
 ```
 
 ### Step 4: Launch Tutorials
 
-After the MolMIM container is running and dependencies are installed, you can start with the tutorials:
+After the MolMIM container is running and dependencies are installed, you can start Jupyter Lab to explore the Tutorials and Challenge:
 
 ```bash
-jupyter-lab tutorials/
+jupyter-lab
 ```
 
-## Tutorial Structure
+## Structure
 
-- **Container Setup**: `tutorials/container_setup.ipynb` - Detailed container deployment guide
-- **Lab 1**: Basic MolMIM operations (clustering, generation, interpolation)
-- **Lab 2**: Advanced techniques with custom oracles and optimization
+- **Tutorials - Container Setup**: [`tutorials/container_setup.ipynb`](tutorials/container_setup.ipynb) - Detailed container deployment guide
+- **Tutorials - Lab 1**: Basic MolMIM operations (clustering, generation, interpolation)
+- **Tutorials - Lab 2**: Advanced techniques with custom oracles and optimization
 - **Challenge**: Apply your knowledge to solve drug discovery problems
 
-## Getting Started
-
-1. Complete the container setup tutorial for detailed deployment instructions
-2. Work through Lab 1 to understand MolMIM fundamentals
-3. Advance to Lab 2 for guided generation with custom scoring oracles
-4. Take on the challenge to apply your skills
 
 ## Support
 
