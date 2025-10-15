@@ -3,3 +3,4 @@ matplotlib
 cma
 rdkit
 jupyterlab
+scipy

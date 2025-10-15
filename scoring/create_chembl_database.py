@@ -20,28 +20,28 @@ import shutil
 
 def download_chembl_file(output_dir="chembl_data"):
     """Download ChEMBL chemical representations file"""
-    os.makedirs(output_dir, exist_ok=True)
+    # os.makedirs(output_dir, exist_ok=True)
     
-    url = "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_35_chemreps.txt.gz"
+    # url = "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_35_chemreps.txt.gz"
     gz_file = os.path.join(output_dir, "chembl_35_chemreps.txt.gz")
     txt_file = os.path.join(output_dir, "chembl_35_chemreps.txt")
     
-    # Check if already downloaded and extracted
-    if os.path.exists(txt_file):
-        print(f"ChEMBL file already exists at {txt_file}")
-        return txt_file
+    # # Check if already downloaded and extracted
+    # if os.path.exists(txt_file):
+    #     print(f"ChEMBL file already exists at {txt_file}")
+    #     return txt_file
     
-    # Download the file
-    print(f"Downloading ChEMBL chemical representations from {url}")
-    print("This may take a few minutes...")
+    # # Download the file
+    # print(f"Downloading ChEMBL chemical representations from {url}")
+    # print("This may take a few minutes...")
     
-    def download_progress(block_num, block_size, total_size):
-        downloaded = block_num * block_size
-        percent = min(downloaded * 100 / total_size, 100)
-        print(f"Download progress: {percent:.1f}%", end='\r')
+    # def download_progress(block_num, block_size, total_size):
+    #     downloaded = block_num * block_size
+    #     percent = min(downloaded * 100 / total_size, 100)
+    #     print(f"Download progress: {percent:.1f}%", end='\r')
     
     try:
-        urllib.request.urlretrieve(url, gz_file, reporthook=download_progress)
+        # urllib.request.urlretrieve(url, gz_file, reporthook=download_progress)
         print("\nDownload completed!")
         
         # Extract the gzip file

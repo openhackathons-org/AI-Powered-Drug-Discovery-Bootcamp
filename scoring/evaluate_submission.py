@@ -577,7 +577,8 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
     for target in ["CDK4", "CDK6", "CDK11"]:
         stats = prediction_stats["by_target"][target]
         total = stats["accepted"] + stats["rejected"]
-        print(f"  {target}: {stats['accepted']}/{total} accepted ({stats['accepted']/total*100:.1f}% if total > 0 else 0)")
+        percentage = stats['accepted']/total*100 if total > 0 else 0
+        print(f"  {target}: {stats['accepted']}/{total} accepted ({percentage:.1f}%)")
     print(f"\nTotal time: {prediction_stats['total_time']:.2f} seconds")
     print(f"Average time per prediction: {prediction_stats['total_time']/prediction_stats['total_predictions']*1000:.1f} ms")
     print(f"{'='*80}\n")
