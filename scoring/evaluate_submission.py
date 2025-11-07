@@ -42,7 +42,7 @@ BOLTZ2_AVAILABLE = False
 BOLTZ2_IMPORT_ERROR = None
 
 try:
-    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest
+    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest, PocketConstraint
     BOLTZ2_AVAILABLE = True
     print("✓ Successfully loaded boltz2-python-client")
 except ImportError as e:
@@ -268,6 +268,9 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
     binding_site_summary = ", ".join(
         f"{site['residue']} (pos {site['position']})" for site in binding_sites
     ) if binding_sites else ""
+    binding_site_positions = [
+        int(site["position"]) for site in binding_sites if "position" in site
+    ]
     
     try:
         if BOLTZ2_AVAILABLE:
@@ -288,6 +291,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             print_rt(f"  SMILES: {smiles}")
             print_rt(f"  Target: {protein_target}")
             print_rt(f"  Sequence length: {len(protein_sequence)} residues")
+            if binding_site_positions:
+                print_rt(f"  Binding site residue indices: {binding_site_positions}")
             
             # Create protein polymer with full sequence
             protein = Polymer(
@@ -303,10 +308,22 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
                 predict_affinity=True
             )
             
+            constraints = None
+            if binding_site_positions:
+                constraints = [
+                    PocketConstraint(
+                        ligand_id=ligand.id,
+                        polymer_id=protein.id,
+                        residue_ids=binding_site_positions,
+                        binder=ligand.id
+                    )
+                ]
+            
             # Create prediction request with minimal parameters for speed
             request = PredictionRequest(
                 polymers=[protein],
                 ligands=[ligand],
+                constraints=constraints,
                 # Minimal structure parameters for faster execution
                 recycling_steps=1,
                 sampling_steps=10,  # Minimum allowed value

@@ -42,7 +42,7 @@ BOLTZ2_AVAILABLE = False
 BOLTZ2_IMPORT_ERROR = None
 
 try:
-    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest
+    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest, PocketConstraint
     BOLTZ2_AVAILABLE = True
     print("✓ Successfully loaded boltz2-python-client")
 except ImportError as e:
@@ -94,6 +94,15 @@ CDK_PROTEIN_INFO = {
                     "ANCIVHRDLKPENILVTSGGTVKLADFGLARIYSYQMALTPVVVTLWYRAPEVLLQSTYATPVDMW"
                     "SVGCIFAEMFRRKPLFCGNSEADQLGKIFDLIGLPPEDDWPRDVSLPRGAFPPRGPRPVQSVVPEM"
                     "EESGAQLLLEMLTFNPHKRISAFRALQHSYLHKDEGNPE",
+        "binding_site_residues": [
+            {"residue": "Lys35", "position": 35},
+            {"residue": "Glu71", "position": 71},
+            {"residue": "Val96", "position": 96},
+            {"residue": "Lys112", "position": 112},
+            {"residue": "Asp158", "position": 158},
+            {"residue": "Phe164", "position": 164},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK6": {
         "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLR"
@@ -101,6 +110,15 @@ CDK_PROTEIN_INFO = {
                     "LDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYAT"
                     "PVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEK"
                     "FVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA",
+        "binding_site_residues": [
+            {"residue": "Lys43", "position": 43},
+            {"residue": "Glu81", "position": 81},
+            {"residue": "Val101", "position": 101},
+            {"residue": "Lys116", "position": 116},
+            {"residue": "Asp163", "position": 163},
+            {"residue": "Phe170", "position": 170},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK11": {
         "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQ"
@@ -108,6 +126,15 @@ CDK_PROTEIN_INFO = {
                     "HRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVG"
                     "CIFGELLTQKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGAL"
                     "LSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY",
+        "binding_site_residues": [
+            {"residue": "Lys41", "position": 41},
+            {"residue": "Glu87", "position": 87},
+            {"residue": "Val113", "position": 113},
+            {"residue": "Lys128", "position": 128},
+            {"residue": "Asp175", "position": 175},
+            {"residue": "Phe182", "position": 182},
+            {"residue": "Asp206", "position": 206}
+        ],
     }
 }
 
@@ -233,6 +260,17 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
     print_rt(f"SMILES: {smiles}")
     print_rt(f"Protein: {protein_target}")
     print_rt(f"Sequence length: {len(CDK_PROTEIN_INFO[protein_target]['sequence'])} aa")
+    binding_sites = CDK_PROTEIN_INFO[protein_target].get("binding_site_residues", [])
+    if binding_sites:
+        print_rt("Binding site residues (≤9 residues):")
+        for site in binding_sites:
+            print_rt(f"  - {site['residue']} (pos {site['position']})")
+    binding_site_summary = ", ".join(
+        f"{site['residue']} (pos {site['position']})" for site in binding_sites
+    ) if binding_sites else ""
+    binding_site_positions = [
+        int(site["position"]) for site in binding_sites if "position" in site
+    ]
     
     try:
         if BOLTZ2_AVAILABLE:
@@ -253,6 +291,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             print_rt(f"  SMILES: {smiles}")
             print_rt(f"  Target: {protein_target}")
             print_rt(f"  Sequence length: {len(protein_sequence)} residues")
+            if binding_site_positions:
+                print_rt(f"  Binding site residue indices: {binding_site_positions}")
             
             # Create protein polymer with full sequence
             protein = Polymer(
@@ -268,10 +308,22 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
                 predict_affinity=True
             )
             
+            constraints = None
+            if binding_site_positions:
+                constraints = [
+                    PocketConstraint(
+                        ligand_id=ligand.id,
+                        polymer_id=protein.id,
+                        residue_ids=binding_site_positions,
+                        binder=ligand.id
+                    )
+                ]
+            
             # Create prediction request with minimal parameters for speed
             request = PredictionRequest(
                 polymers=[protein],
                 ligands=[ligand],
+                constraints=constraints,
                 # Minimal structure parameters for faster execution
                 recycling_steps=1,
                 sampling_steps=10,  # Minimum allowed value
@@ -500,7 +552,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             "pic50": np.nan,
             "confidence": confidence,
             "prediction_accepted": False,
-            "reason": f"Low confidence ({confidence:.3f} < {confidence_threshold})"
+            "reason": f"Low confidence ({confidence:.3f} < {confidence_threshold})",
+            "binding_site_residues": binding_site_summary
         }
     
     # Ensure pic50 is calculated if only ic50_nm is available
@@ -511,7 +564,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
         "ic50_nm": ic50_nm,
         "pic50": pic50,
         "confidence": confidence,
-        "prediction_accepted": True
+        "prediction_accepted": True,
+        "binding_site_residues": binding_site_summary
     }
 
 
@@ -533,6 +587,7 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
         df[f"{target}_pic50"] = np.nan
         df[f"{target}_confidence"] = np.nan
         df[f"{target}_prediction_accepted"] = False
+        df[f"{target}_binding_site_residues"] = ""
     
     # Temporarily disable verbose output if not requested
     overall_start = time.time()
@@ -550,6 +605,7 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
                     )
                     
                     prediction_stats["total_predictions"] += 1
+                    df.at[idx, f"{target}_binding_site_residues"] = result.get("binding_site_residues", "")
                     
                     if result["prediction_accepted"]:
                         df.at[idx, f"{target}_ic50_nm"] = result["ic50_nm"]
@@ -1027,6 +1083,11 @@ def main():
             df[f"{target}_pic50"] = np.nan
             df[f"{target}_confidence"] = np.nan
             df[f"{target}_prediction_accepted"] = False
+            binding_sites = CDK_PROTEIN_INFO[target].get("binding_site_residues", [])
+            binding_site_summary = ", ".join(
+                f"{site['residue']} (pos {site['position']})" for site in binding_sites
+            ) if binding_sites else ""
+            df[f"{target}_binding_site_residues"] = binding_site_summary
         df['on_target_pic50'] = np.nan
         df['on_target_ic50_nm'] = np.nan
         df['selectivity_ratio'] = np.nan
