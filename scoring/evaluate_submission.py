@@ -265,6 +265,9 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
         print_rt("Binding site residues (≤9 residues):")
         for site in binding_sites:
             print_rt(f"  - {site['residue']} (pos {site['position']})")
+    binding_site_summary = ", ".join(
+        f"{site['residue']} (pos {site['position']})" for site in binding_sites
+    ) if binding_sites else ""
     
     try:
         if BOLTZ2_AVAILABLE:
@@ -532,7 +535,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             "pic50": np.nan,
             "confidence": confidence,
             "prediction_accepted": False,
-            "reason": f"Low confidence ({confidence:.3f} < {confidence_threshold})"
+            "reason": f"Low confidence ({confidence:.3f} < {confidence_threshold})",
+            "binding_site_residues": binding_site_summary
         }
     
     # Ensure pic50 is calculated if only ic50_nm is available
@@ -543,7 +547,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
         "ic50_nm": ic50_nm,
         "pic50": pic50,
         "confidence": confidence,
-        "prediction_accepted": True
+        "prediction_accepted": True,
+        "binding_site_residues": binding_site_summary
     }
 
 
@@ -565,6 +570,7 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
         df[f"{target}_pic50"] = np.nan
         df[f"{target}_confidence"] = np.nan
         df[f"{target}_prediction_accepted"] = False
+        df[f"{target}_binding_site_residues"] = ""
     
     # Temporarily disable verbose output if not requested
     overall_start = time.time()
@@ -582,6 +588,7 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
                     )
                     
                     prediction_stats["total_predictions"] += 1
+                    df.at[idx, f"{target}_binding_site_residues"] = result.get("binding_site_residues", "")
                     
                     if result["prediction_accepted"]:
                         df.at[idx, f"{target}_ic50_nm"] = result["ic50_nm"]
@@ -1059,6 +1066,11 @@ def main():
             df[f"{target}_pic50"] = np.nan
             df[f"{target}_confidence"] = np.nan
             df[f"{target}_prediction_accepted"] = False
+            binding_sites = CDK_PROTEIN_INFO[target].get("binding_site_residues", [])
+            binding_site_summary = ", ".join(
+                f"{site['residue']} (pos {site['position']})" for site in binding_sites
+            ) if binding_sites else ""
+            df[f"{target}_binding_site_residues"] = binding_site_summary
         df['on_target_pic50'] = np.nan
         df['on_target_ic50_nm'] = np.nan
         df['selectivity_ratio'] = np.nan
