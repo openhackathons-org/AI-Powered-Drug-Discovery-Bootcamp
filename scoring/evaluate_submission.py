@@ -94,6 +94,15 @@ CDK_PROTEIN_INFO = {
                     "ANCIVHRDLKPENILVTSGGTVKLADFGLARIYSYQMALTPVVVTLWYRAPEVLLQSTYATPVDMW"
                     "SVGCIFAEMFRRKPLFCGNSEADQLGKIFDLIGLPPEDDWPRDVSLPRGAFPPRGPRPVQSVVPEM"
                     "EESGAQLLLEMLTFNPHKRISAFRALQHSYLHKDEGNPE",
+        "binding_site_residues": [
+            {"residue": "Lys35", "position": 35},
+            {"residue": "Glu71", "position": 71},
+            {"residue": "Val96", "position": 96},
+            {"residue": "Lys112", "position": 112},
+            {"residue": "Asp158", "position": 158},
+            {"residue": "Phe164", "position": 164},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK6": {
         "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLR"
@@ -101,6 +110,15 @@ CDK_PROTEIN_INFO = {
                     "LDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYAT"
                     "PVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEK"
                     "FVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA",
+        "binding_site_residues": [
+            {"residue": "Lys43", "position": 43},
+            {"residue": "Glu81", "position": 81},
+            {"residue": "Val101", "position": 101},
+            {"residue": "Lys116", "position": 116},
+            {"residue": "Asp163", "position": 163},
+            {"residue": "Phe170", "position": 170},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK11": {
         "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQ"
@@ -108,6 +126,15 @@ CDK_PROTEIN_INFO = {
                     "HRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVG"
                     "CIFGELLTQKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGAL"
                     "LSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY",
+        "binding_site_residues": [
+            {"residue": "Lys41", "position": 41},
+            {"residue": "Glu87", "position": 87},
+            {"residue": "Val113", "position": 113},
+            {"residue": "Lys128", "position": 128},
+            {"residue": "Asp175", "position": 175},
+            {"residue": "Phe182", "position": 182},
+            {"residue": "Asp206", "position": 206}
+        ],
     }
 }
 
@@ -233,6 +260,11 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
     print_rt(f"SMILES: {smiles}")
     print_rt(f"Protein: {protein_target}")
     print_rt(f"Sequence length: {len(CDK_PROTEIN_INFO[protein_target]['sequence'])} aa")
+    binding_sites = CDK_PROTEIN_INFO[protein_target].get("binding_site_residues", [])
+    if binding_sites:
+        print_rt("Binding site residues (≤9 residues):")
+        for site in binding_sites:
+            print_rt(f"  - {site['residue']} (pos {site['position']})")
     
     try:
         if BOLTZ2_AVAILABLE:
