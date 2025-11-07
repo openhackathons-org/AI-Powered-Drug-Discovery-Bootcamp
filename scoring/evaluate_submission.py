@@ -36,6 +36,8 @@ import sqlite3
 import pickle
 from tqdm import tqdm
 import json
+import re
+import traceback
 
 # Try to import boltz2 client (optional)
 BOLTZ2_AVAILABLE = False
@@ -82,9 +84,6 @@ _CHEMBL_FP_CACHE = None
 def get_novelty_cutoff() -> float:
     """Return the configured novelty similarity cutoff."""
     return CONFIG.get("novelty_cutoff", 0.85)
-
-
-print(CONFIG)
 
 # CDK Protein Information
 CDK_PROTEIN_INFO = {
@@ -246,12 +245,88 @@ def print_rt(message: str):
     print(message, flush=True)
     
 
+class TeeIO:
+    """Duplicate writes to multiple streams (e.g., stdout and log file)."""
+
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        for stream in self.streams:
+            stream.write(data)
+        return len(data)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+    def isatty(self):
+        return any(getattr(stream, "isatty", lambda: False)() for stream in self.streams)
+
+    @property
+    def encoding(self):
+        for stream in self.streams:
+            encoding = getattr(stream, "encoding", None)
+            if encoding:
+                return encoding
+        return "utf-8"
+
+
+def sanitize_filename(value: str) -> str:
+    """Return a filesystem-safe version of the provided value."""
+    safe_value = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    return safe_value or "structure"
+
+
+def get_output_dir() -> Optional[Path]:
+    output_dir = CONFIG.get("current_output_dir")
+    return Path(output_dir) if output_dir else None
+
+
+def save_prediction_structures(prediction: Any, compound_label: str, protein_target: str) -> List[Path]:
+    """Persist returned structures (if any) as CIF files under the output directory."""
+    output_dir = get_output_dir()
+    if output_dir is None:
+        return []
+
+    structures = getattr(prediction, "structures", None)
+    if not structures:
+        return []
+
+    structures_dir = output_dir / "boltz2_structures"
+    structures_dir.mkdir(parents=True, exist_ok=True)
+
+    compound_slug = sanitize_filename(compound_label or "compound")
+    saved_paths: List[Path] = []
+
+    for idx, structure in enumerate(structures, start=1):
+        cif_data = None
+        if hasattr(structure, "mmcif") and structure.mmcif:
+            cif_data = structure.mmcif
+        elif hasattr(structure, "model_dump"):
+            structure_dict = structure.model_dump()
+            cif_data = structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+        elif isinstance(structure, dict):
+            cif_data = structure.get("mmcif") or structure.get("mmCIF")
+
+        if cif_data:
+            filename = f"{compound_slug}_{protein_target}_structure{idx}.cif"
+            cif_path = structures_dir / filename
+            with open(cif_path, "w") as cif_file:
+                cif_file.write(cif_data)
+            saved_paths.append(cif_path)
+
+    return saved_paths
+
+
 def predict_binding_affinity_boltz2(smiles: str, protein_target: str, 
                                    confidence_threshold: float = CONFIG["confidence_threshold"],
-                                   verbose: bool = True) -> Dict:
+                                   verbose: bool = True,
+                                   compound_id: Optional[str] = None) -> Dict:
     """Predict IC50 values using Boltz2 Python client"""
     
     start_time = time.time()
+    compound_label = compound_id or f"compound_{abs(hash(smiles)) % 10**8}"
     
     print_rt(f"\n{'='*80}")
     print_rt(f"BOLTZ2 PREDICTION REQUEST - {protein_target}")
@@ -291,6 +366,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             print_rt(f"  SMILES: {smiles}")
             print_rt(f"  Target: {protein_target}")
             print_rt(f"  Sequence length: {len(protein_sequence)} residues")
+            if compound_id:
+                print_rt(f"  Compound ID: {compound_id}")
             if binding_site_positions:
                 print_rt(f"  Binding site residue indices: {binding_site_positions}")
             
@@ -334,6 +411,12 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
                 affinity_mw_correction=True
             )
             
+            print_rt(f"\nREQUEST PAYLOAD:")
+            try:
+                print(json.dumps(request.model_dump(), indent=2, default=str))
+            except Exception:
+                print_rt(str(request))
+            
             # Print detailed request information
             print_rt(f"\nBOLTZ2 REQUEST PARAMETERS:")
             print(f"  Protein ID: {protein.id}")
@@ -368,6 +451,8 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             prediction = asyncio.run(run_prediction())
             
             api_time = time.time() - api_start
+            
+            saved_cif_paths = save_prediction_structures(prediction, compound_label, protein_target)
             
             # Extract results
             print_rt(f"\nBOLTZ2 PREDICTION RESPONSE")
@@ -417,6 +502,11 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
                             print(f"    - affinity_probability_binary: {affinity.affinity_probability_binary}")
                         if hasattr(affinity, 'affinity_model_predictions'):
                             print(f"    - affinity_model_predictions: {affinity.affinity_model_predictions}")
+            
+            if saved_cif_paths:
+                print_rt(f"\nSaved {len(saved_cif_paths)} CIF file(s):")
+                for cif_path in saved_cif_paths:
+                    print_rt(f"  - {cif_path}")
             
             # Extract affinity data
             ic50_nm = None
@@ -546,32 +636,54 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
     print(f"  Total time: {elapsed_time*1000:.1f} ms")
     print(f"{'='*80}\n")
     
-    if confidence < confidence_threshold:
-        return {
-            "ic50_nm": np.nan,
-            "pic50": np.nan,
-            "confidence": confidence,
-            "prediction_accepted": False,
-            "reason": f"Low confidence ({confidence:.3f} < {confidence_threshold})",
-            "binding_site_residues": binding_site_summary
-        }
-    
     # Ensure pic50 is calculated if only ic50_nm is available
     if pic50 is None and ic50_nm is not None:
         pic50 = -np.log10(ic50_nm * 1e-9)
     
-    return {
-        "ic50_nm": ic50_nm,
-        "pic50": pic50,
+    ic50_raw_value = float(ic50_nm) if ic50_nm is not None else np.nan
+    pic50_raw_value = float(pic50) if pic50 is not None else np.nan
+    prediction_accepted = confidence >= confidence_threshold
+
+    result_payload = {
+        "ic50_nm": ic50_nm if prediction_accepted else np.nan,
+        "pic50": pic50 if prediction_accepted else np.nan,
         "confidence": confidence,
-        "prediction_accepted": True,
-        "binding_site_residues": binding_site_summary
+        "prediction_accepted": prediction_accepted,
+        "binding_site_residues": binding_site_summary,
+        "ic50_nm_raw": ic50_raw_value,
+        "pic50_raw": pic50_raw_value
     }
+
+    if not prediction_accepted:
+        result_payload["reason"] = f"Low confidence ({confidence:.3f} < {confidence_threshold})"
+
+    return result_payload
 
 
 def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> pd.DataFrame:
     """Calculate IC50 values for all compounds"""
     print("Calculating IC50 values...")
+    
+    def format_affinity_output(row: pd.Series, target: str) -> Tuple[str, str, str]:
+        ic50 = row.get(f"{target}_ic50_nm")
+        pic50 = row.get(f"{target}_pic50")
+        ic50_raw = row.get(f"{target}_ic50_nm_raw")
+        pic50_raw = row.get(f"{target}_pic50_raw")
+        accepted = row.get(f"{target}_prediction_accepted")
+
+        if (pd.isna(ic50) or ic50 is None) and pd.notna(ic50_raw):
+            ic50 = ic50_raw
+        if (pd.isna(pic50) or pic50 is None) and pd.notna(pic50_raw):
+            pic50 = pic50_raw
+
+        suffix = ""
+        if accepted is False and pd.notna(ic50_raw):
+            suffix = " (low confidence)"
+
+        ic50_str = f"{ic50:.1f}" if ic50 is not None and not pd.isna(ic50) else "N/A"
+        pic50_str = f"{pic50:.2f}" if pic50 is not None and not pd.isna(pic50) else "N/A"
+
+        return ic50_str, pic50_str, suffix
     
     # Initialize statistics
     prediction_stats = {
@@ -587,6 +699,8 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
         df[f"{target}_pic50"] = np.nan
         df[f"{target}_confidence"] = np.nan
         df[f"{target}_prediction_accepted"] = False
+        df[f"{target}_ic50_nm_raw"] = np.nan
+        df[f"{target}_pic50_raw"] = np.nan
         df[f"{target}_binding_site_residues"] = ""
     
     # Temporarily disable verbose output if not requested
@@ -601,10 +715,13 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
                         row['canonical_smiles'], 
                         target,
                         CONFIG["confidence_threshold"],
-                        verbose=verbose
+                        verbose=verbose,
+                        compound_id=row.get('compound_id', f"compound_{idx+1}")
                     )
                     
                     prediction_stats["total_predictions"] += 1
+                    df.at[idx, f"{target}_ic50_nm_raw"] = result.get("ic50_nm_raw", np.nan)
+                    df.at[idx, f"{target}_pic50_raw"] = result.get("pic50_raw", np.nan)
                     df.at[idx, f"{target}_binding_site_residues"] = result.get("binding_site_residues", "")
                     
                     if result["prediction_accepted"]:
@@ -646,9 +763,12 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
     for idx, row in df.iterrows():
         if pd.notna(row.get('canonical_smiles')):
             print(f"\nCompound {idx + 1}: {row['canonical_smiles'][:50]}...")
-            print(f"  CDK4:  IC50 = {row.get('CDK4_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK4_pic50', np.nan):.2f}")
-            print(f"  CDK6:  IC50 = {row.get('CDK6_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK6_pic50', np.nan):.2f}")
-            print(f"  CDK11: IC50 = {row.get('CDK11_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK11_pic50', np.nan):.2f}")
+            cdk4_ic50, cdk4_pic50, cdk4_suffix = format_affinity_output(row, "CDK4")
+            cdk6_ic50, cdk6_pic50, cdk6_suffix = format_affinity_output(row, "CDK6")
+            cdk11_ic50, cdk11_pic50, cdk11_suffix = format_affinity_output(row, "CDK11")
+            print(f"  CDK4:  IC50 = {cdk4_ic50} nM{cdk4_suffix}, pIC50 = {cdk4_pic50}")
+            print(f"  CDK6:  IC50 = {cdk6_ic50} nM{cdk6_suffix}, pIC50 = {cdk6_pic50}")
+            print(f"  CDK11: IC50 = {cdk11_ic50} nM{cdk11_suffix}, pIC50 = {cdk11_pic50}")
             if pd.notna(row.get('selectivity_ratio')):
                 print(f"  Selectivity (CDK11/CDK4,6): {row['selectivity_ratio']:.1f}x")
     print(f"{'='*80}\n")
@@ -1056,86 +1176,119 @@ def main():
     # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    CONFIG["current_output_dir"] = str(output_dir)
     
-    print(f"Evaluating submission for {args.team_name}")
-    print(f"Input file: {args.smiles_file}")
-    print(f"Output directory: {output_dir}")
+    log_path = output_dir / f"{args.team_name}_evaluation.log"
+    log_file = open(log_path, "w")
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stdout = TeeIO(original_stdout, log_file)
+    sys.stderr = TeeIO(original_stderr, log_file)
     
-    # Load and validate SMILES
-    df = load_smiles_file(args.smiles_file)
-    df = validate_smiles(df)
+    try:
+        print(f"Evaluation log will be saved to: {log_path}")
+        print(f"Evaluating submission for {args.team_name}")
+        print(f"Input file: {args.smiles_file}")
+        print(f"Output directory: {output_dir}")
+        
+        smiles_path = Path(args.smiles_file)
+        if not smiles_path.exists():
+            print(f"Error: Input file '{smiles_path}' not found.")
+            return 1
+        
+        if not args.skip_novelty:
+            chembl_cache = Path(args.chembl_path) / "chembl_fingerprints.pkl"
+            if not chembl_cache.exists():
+                print(f"Error: Required ChEMBL fingerprint cache not found at {chembl_cache}.")
+                print("Run the ChEMBL fingerprint preparation script or supply --skip-novelty.")
+                return 1
+        
+        # Load and validate SMILES
+        df = load_smiles_file(str(smiles_path))
+        df = validate_smiles(df)
+        
+        if df['is_valid'].sum() == 0:
+            print("Error: No valid SMILES found in submission!")
+            return 1
+        
+        # Filter to valid compounds only
+        df = df[df['is_valid']].copy()
+        
+        # Calculate properties
+        df = calculate_qed_scores(df)
+        df = calculate_sa_scores(df)
+        
+        # Calculate binding affinities
+        if args.skip_boltz2:
+            for target in ["CDK4", "CDK6", "CDK11"]:
+                df[f"{target}_ic50_nm"] = np.nan
+                df[f"{target}_pic50"] = np.nan
+                df[f"{target}_confidence"] = np.nan
+                df[f"{target}_prediction_accepted"] = False
+                df[f"{target}_ic50_nm_raw"] = np.nan
+                df[f"{target}_pic50_raw"] = np.nan
+                binding_sites = CDK_PROTEIN_INFO[target].get("binding_site_residues", [])
+                binding_site_summary = ", ".join(
+                    f"{site['residue']} (pos {site['position']})" for site in binding_sites
+                ) if binding_sites else ""
+                df[f"{target}_binding_site_residues"] = binding_site_summary
+            df['on_target_pic50'] = np.nan
+            df['on_target_ic50_nm'] = np.nan
+            df['selectivity_ratio'] = np.nan
+            df['cdk11_avoidance'] = np.nan
+        else:
+            df = calculate_all_binding_affinities(df, verbose=args.verbose)
+        
+        # Apply PAINS filtering
+        if not args.skip_pains:
+            df = apply_pains_filter(df)
+        else:
+            df['is_pains'] = False
+            df['pains_score'] = 1.0
+        
+        # Keep only non-PAINS compounds for scoring
+        df = df[df['is_pains'] != True].copy()
+        if len(df) == 0:
+            print("Error: All compounds flagged as PAINS. No compounds to score.")
+            return 1
     
-    if df['is_valid'].sum() == 0:
-        print("Error: No valid SMILES found in submission!")
+        # Calculate novelty
+        if not args.skip_novelty:
+            df = calculate_novelty_scores(df, similarity_cutoff=CONFIG["novelty_cutoff"])
+        else:
+            df['novelty_score'] = 0.5  # Neutral score
+        
+        # Normalize and calculate composite scores
+        df = normalize_scores(df)
+        df = calculate_composite_scores(df)
+        
+        # Generate outputs
+        create_evaluation_dashboard(df, args.team_name, output_dir)
+        generate_report(df, args.team_name, output_dir)
+        
+        # Print summary
+        print("\nEvaluation Complete!")
+        print(f"Total valid compounds: {len(df)}")
+        print(f"Top compound score: {df['composite_score'].max():.3f}")
+        print(f"Median score: {df['composite_score'].median():.3f}")
+        
+        if 'selectivity_ratio' in df.columns:
+            good_selectivity = (df['selectivity_ratio'] > 10).sum()
+            print(f"Compounds with >10-fold selectivity: {good_selectivity}")
+        
+        print(f"\nResults saved to {output_dir}")
+        return 0
+    except Exception as exc:
+        print(f"Unexpected error during evaluation: {exc}")
+        traceback.print_exc()
         return 1
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        log_file.close()
     
-    # Filter to valid compounds only
-    df = df[df['is_valid']].copy()
+    return 0  # Should not be reached
     
-    # Calculate properties
-    df = calculate_qed_scores(df)
-    df = calculate_sa_scores(df)
-    
-    # Calculate binding affinities
-    if args.skip_boltz2:
-        for target in ["CDK4", "CDK6", "CDK11"]:
-            df[f"{target}_ic50_nm"] = np.nan
-            df[f"{target}_pic50"] = np.nan
-            df[f"{target}_confidence"] = np.nan
-            df[f"{target}_prediction_accepted"] = False
-            binding_sites = CDK_PROTEIN_INFO[target].get("binding_site_residues", [])
-            binding_site_summary = ", ".join(
-                f"{site['residue']} (pos {site['position']})" for site in binding_sites
-            ) if binding_sites else ""
-            df[f"{target}_binding_site_residues"] = binding_site_summary
-        df['on_target_pic50'] = np.nan
-        df['on_target_ic50_nm'] = np.nan
-        df['selectivity_ratio'] = np.nan
-        df['cdk11_avoidance'] = np.nan
-    else:
-        df = calculate_all_binding_affinities(df, verbose=args.verbose)
-    
-    # Apply PAINS filtering
-    if not args.skip_pains:
-        df = apply_pains_filter(df)
-    else:
-        df['is_pains'] = False
-        df['pains_score'] = 1.0
-    
-    # Keep only non-PAINS compounds for scoring
-    df = df[df['is_pains'] != True].copy()
-    if len(df) == 0:
-        print("Error: All compounds flagged as PAINS. No compounds to score.")
-        return 1
-
-    # Calculate novelty
-    if not args.skip_novelty:
-        df = calculate_novelty_scores(df, similarity_cutoff=CONFIG["novelty_cutoff"])
-    else:
-        df['novelty_score'] = 0.5  # Neutral score
-    
-    # Normalize and calculate composite scores
-    df = normalize_scores(df)
-    df = calculate_composite_scores(df)
-    
-    # Generate outputs
-    create_evaluation_dashboard(df, args.team_name, output_dir)
-    generate_report(df, args.team_name, output_dir)
-    
-    # Print summary
-    print("\nEvaluation Complete!")
-    print(f"Total valid compounds: {len(df)}")
-    print(f"Top compound score: {df['composite_score'].max():.3f}")
-    print(f"Median score: {df['composite_score'].median():.3f}")
-    
-    if 'selectivity_ratio' in df.columns:
-        good_selectivity = (df['selectivity_ratio'] > 10).sum()
-        print(f"Compounds with >10-fold selectivity: {good_selectivity}")
-    
-    print(f"\nResults saved to {output_dir}")
-    
-    return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
