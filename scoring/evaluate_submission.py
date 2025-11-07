@@ -19,6 +19,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from shutil import copy2
 from datetime import datetime
 import time
 import asyncio
@@ -301,22 +302,73 @@ def save_prediction_structures(prediction: Any, compound_label: str, protein_tar
 
     for idx, structure in enumerate(structures, start=1):
         cif_data = None
+        structure_path = None
+
         if hasattr(structure, "mmcif") and structure.mmcif:
             cif_data = structure.mmcif
-        elif hasattr(structure, "model_dump"):
+        if hasattr(structure, "path") and structure.path:
+            structure_path = structure.path
+        if hasattr(structure, "file_path") and structure.file_path:
+            structure_path = structure.file_path
+
+        if hasattr(structure, "model_dump"):
             structure_dict = structure.model_dump()
-            cif_data = structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+            cif_data = cif_data or structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+            structure_path = structure_path or structure_dict.get("path") or structure_dict.get("file_path")
         elif isinstance(structure, dict):
-            cif_data = structure.get("mmcif") or structure.get("mmCIF")
+            cif_data = cif_data or structure.get("mmcif") or structure.get("mmCIF")
+            structure_path = structure_path or structure.get("path") or structure.get("file_path")
+
+        filename_base = f"{compound_slug}_{protein_target}_structure{idx}"
 
         if cif_data:
-            filename = f"{compound_slug}_{protein_target}_structure{idx}.cif"
-            cif_path = structures_dir / filename
+            cif_path = structures_dir / f"{filename_base}.cif"
             with open(cif_path, "w") as cif_file:
                 cif_file.write(cif_data)
             saved_paths.append(cif_path)
+            continue
+
+        if structure_path:
+            src = Path(structure_path)
+            if src.exists():
+                extension = src.suffix or ".cif"
+                cif_path = structures_dir / f"{filename_base}{extension}"
+                copy2(src, cif_path)
+                saved_paths.append(cif_path)
 
     return saved_paths
+
+
+def format_affinity_result(row: pd.Series, target: str) -> Dict[str, Any]:
+    """Return formatted affinity readouts with raw fallbacks and confidence."""
+    ic50 = row.get(f"{target}_ic50_nm")
+    pic50 = row.get(f"{target}_pic50")
+    ic50_raw = row.get(f"{target}_ic50_nm_raw")
+    pic50_raw = row.get(f"{target}_pic50_raw")
+    confidence = row.get(f"{target}_confidence")
+    accepted = row.get(f"{target}_prediction_accepted")
+
+    display_ic50 = ic50 if pd.notna(ic50) else ic50_raw
+    display_pic50 = pic50 if pd.notna(pic50) else pic50_raw
+
+    suffix = ""
+    if accepted is False and pd.notna(display_ic50):
+        suffix = " (low confidence)"
+
+    ic50_str = f"{display_ic50:.1f}" if display_ic50 is not None and not pd.isna(display_ic50) else "N/A"
+    pic50_str = f"{display_pic50:.2f}" if display_pic50 is not None and not pd.isna(display_pic50) else "N/A"
+    confidence_str = f"{confidence:.2f}" if confidence is not None and not pd.isna(confidence) else "N/A"
+
+    return {
+        "ic50_str": ic50_str,
+        "pic50_str": pic50_str,
+        "confidence_str": confidence_str,
+        "suffix": suffix,
+        "ic50_value": display_ic50,
+        "pic50_value": display_pic50,
+        "confidence": confidence,
+        "accepted": bool(accepted) if accepted is True else False
+    }
 
 
 def predict_binding_affinity_boltz2(smiles: str, protein_target: str, 
@@ -664,27 +716,6 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
     """Calculate IC50 values for all compounds"""
     print("Calculating IC50 values...")
     
-    def format_affinity_output(row: pd.Series, target: str) -> Tuple[str, str, str]:
-        ic50 = row.get(f"{target}_ic50_nm")
-        pic50 = row.get(f"{target}_pic50")
-        ic50_raw = row.get(f"{target}_ic50_nm_raw")
-        pic50_raw = row.get(f"{target}_pic50_raw")
-        accepted = row.get(f"{target}_prediction_accepted")
-
-        if (pd.isna(ic50) or ic50 is None) and pd.notna(ic50_raw):
-            ic50 = ic50_raw
-        if (pd.isna(pic50) or pic50 is None) and pd.notna(pic50_raw):
-            pic50 = pic50_raw
-
-        suffix = ""
-        if accepted is False and pd.notna(ic50_raw):
-            suffix = " (low confidence)"
-
-        ic50_str = f"{ic50:.1f}" if ic50 is not None and not pd.isna(ic50) else "N/A"
-        pic50_str = f"{pic50:.2f}" if pic50 is not None and not pd.isna(pic50) else "N/A"
-
-        return ic50_str, pic50_str, suffix
-    
     # Initialize statistics
     prediction_stats = {
         "total_predictions": 0,
@@ -763,12 +794,12 @@ def calculate_all_binding_affinities(df: pd.DataFrame, verbose: bool = True) -> 
     for idx, row in df.iterrows():
         if pd.notna(row.get('canonical_smiles')):
             print(f"\nCompound {idx + 1}: {row['canonical_smiles'][:50]}...")
-            cdk4_ic50, cdk4_pic50, cdk4_suffix = format_affinity_output(row, "CDK4")
-            cdk6_ic50, cdk6_pic50, cdk6_suffix = format_affinity_output(row, "CDK6")
-            cdk11_ic50, cdk11_pic50, cdk11_suffix = format_affinity_output(row, "CDK11")
-            print(f"  CDK4:  IC50 = {cdk4_ic50} nM{cdk4_suffix}, pIC50 = {cdk4_pic50}")
-            print(f"  CDK6:  IC50 = {cdk6_ic50} nM{cdk6_suffix}, pIC50 = {cdk6_pic50}")
-            print(f"  CDK11: IC50 = {cdk11_ic50} nM{cdk11_suffix}, pIC50 = {cdk11_pic50}")
+            cdk4 = format_affinity_result(row, "CDK4")
+            cdk6 = format_affinity_result(row, "CDK6")
+            cdk11 = format_affinity_result(row, "CDK11")
+            print(f"  CDK4:  IC50 = {cdk4['ic50_str']} nM{cdk4['suffix']}, pIC50 = {cdk4['pic50_str']}, confidence = {cdk4['confidence_str']}")
+            print(f"  CDK6:  IC50 = {cdk6['ic50_str']} nM{cdk6['suffix']}, pIC50 = {cdk6['pic50_str']}, confidence = {cdk6['confidence_str']}")
+            print(f"  CDK11: IC50 = {cdk11['ic50_str']} nM{cdk11['suffix']}, pIC50 = {cdk11['pic50_str']}, confidence = {cdk11['confidence_str']}")
             if pd.notna(row.get('selectivity_ratio')):
                 print(f"  Selectivity (CDK11/CDK4,6): {row['selectivity_ratio']:.1f}x")
     print(f"{'='*80}\n")
@@ -1127,9 +1158,21 @@ def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
             rank_value = row['rank']
             rank_display = int(rank_value) if pd.notna(rank_value) else 'N/A'
             f.write(f"{rank_display}. {row['compound_id']} - Score: {row['composite_score']:.3f}\n")
-            if 'on_target_ic50_nm' in row:
-                f.write(f"   IC50: CDK4/6={row['on_target_ic50_nm']:.1f}nM, ")
-                f.write(f"CDK11={df.loc[idx, 'CDK11_ic50_nm']:.1f}nM\n")
+            cdk4 = format_affinity_result(row, "CDK4")
+            cdk6 = format_affinity_result(row, "CDK6")
+            cdk11 = format_affinity_result(row, "CDK11")
+            f.write(
+                f"   CDK4: IC50={cdk4['ic50_str']} nM{cdk4['suffix']}, "
+                f"pIC50={cdk4['pic50_str']}, confidence={cdk4['confidence_str']}\n"
+            )
+            f.write(
+                f"   CDK6: IC50={cdk6['ic50_str']} nM{cdk6['suffix']}, "
+                f"pIC50={cdk6['pic50_str']}, confidence={cdk6['confidence_str']}\n"
+            )
+            f.write(
+                f"   CDK11: IC50={cdk11['ic50_str']} nM{cdk11['suffix']}, "
+                f"pIC50={cdk11['pic50_str']}, confidence={cdk11['confidence_str']}\n"
+            )
         
         f.write(f"\nMedian Scores:\n")
         for score_name in ['qed_score', 'sa_score_normalized', 'pains_score', 
