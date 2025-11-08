@@ -1217,7 +1217,10 @@ def main():
     CONFIG["boltz2_url"] = args.boltz2_url
     
     # Create output directory
-    output_dir = Path(args.output_dir)
+    base_output_dir = Path(args.output_dir)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    team_slug = sanitize_filename(args.team_name)
+    output_dir = base_output_dir / f"{team_slug}_{timestamp}"
     output_dir.mkdir(parents=True, exist_ok=True)
     CONFIG["current_output_dir"] = str(output_dir)
     
