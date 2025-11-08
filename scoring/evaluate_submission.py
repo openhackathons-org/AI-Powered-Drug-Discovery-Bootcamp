@@ -284,7 +284,12 @@ def get_output_dir() -> Optional[Path]:
     return Path(output_dir) if output_dir else None
 
 
-def save_prediction_structures(prediction: Any, compound_label: str, protein_target: str) -> List[Path]:
+def save_prediction_structures(
+    prediction: Any,
+    compound_label: str,
+    protein_target: str,
+    prediction_start_time: Optional[float] = None
+) -> List[Path]:
     """Persist returned structures (if any) as CIF files under the output directory."""
     output_dir = get_output_dir()
     if output_dir is None:
@@ -335,6 +340,33 @@ def save_prediction_structures(prediction: Any, compound_label: str, protein_tar
                 cif_path = structures_dir / f"{filename_base}{extension}"
                 copy2(src, cif_path)
                 saved_paths.append(cif_path)
+
+    # Fallback: capture any CIF files generated in working directory during prediction
+    if prediction_start_time is not None:
+        existing_names = {path.name for path in saved_paths}
+        for cif_file in Path.cwd().glob("structure*.cif"):
+            try:
+                if prediction_start_time is not None and cif_file.stat().st_mtime < prediction_start_time - 1:
+                    continue
+            except OSError:
+                continue
+
+            target_name = f"{compound_slug}_{protein_target}_{cif_file.name}"
+            if target_name in existing_names:
+                continue
+
+            cif_path = structures_dir / target_name
+            try:
+                copy2(cif_file, cif_path)
+                saved_paths.append(cif_path)
+                existing_names.add(target_name)
+                # Clean up original file to avoid clutter
+                try:
+                    cif_file.unlink()
+                except OSError:
+                    pass
+            except OSError:
+                continue
 
     return saved_paths
 
@@ -504,7 +536,12 @@ def predict_binding_affinity_boltz2(smiles: str, protein_target: str,
             
             api_time = time.time() - api_start
             
-            saved_cif_paths = save_prediction_structures(prediction, compound_label, protein_target)
+            saved_cif_paths = save_prediction_structures(
+                prediction,
+                compound_label,
+                protein_target,
+                prediction_start_time=start_time
+            )
             
             # Extract results
             print_rt(f"\nBOLTZ2 PREDICTION RESPONSE")

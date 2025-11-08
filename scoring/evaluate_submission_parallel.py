@@ -21,11 +21,13 @@ import os
 import sys
 import asyncio
 import pickle
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
+from shutil import copy2
+import re
+import traceback
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -43,7 +45,7 @@ except ImportError:
 
 # Boltz2 client import
 try:
-    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest
+    from boltz2_client import Boltz2Client, Polymer, Ligand, PredictionRequest, PocketConstraint
     BOLTZ2_AVAILABLE = True
 except ImportError:
     print("Warning: boltz2-python-client not available. Install with: pip install boltz2-python-client")
@@ -223,13 +225,40 @@ def apply_pains_filter_parallel(df: pd.DataFrame) -> pd.DataFrame:
 # Protein sequences for CDK targets
 CDK_PROTEIN_INFO = {
     "CDK4": {
-        "sequence": "MATSRYEPVAEIGVGAYGTVYKARDPHSGHFVALKSVRVPNGGGGGGGLPISTVREVALLRRLEAFEHPNVVRLMDVCATSRTDREIKVTLVFEHVDQDLRTYLDKAPPPGLPAETIKDLMRQFLRGLDFLHANCIVHRDLKPENILVTSGGTVKLADFGLARIYSYQMALTPVVVTLWYRAPEVLLQSTYATPVDMWSVGCIFAEMFRRKPLFCGNSEADQLGKIFDLIGLPPEDDWPRDVSLPRGAFPPRGPRPVQSVVPEMEESGAQLLLEMLTFNPHKRISAFRALQHSYLHKDEGNPE"
+        "sequence": "MATSRYEPVAEIGVGAYGTVYKARDPHSGHFVALKSVRVPNGGGGGGGLPISTVREVALLRRLEAFEHPNVVRLMDVCATSRTDREIKVTLVFEHVDQDLRTYLDKAPPPGLPAETIKDLMRQFLRGLDFLHANCIVHRDLKPENILVTSGGTVKLADFGLARIYSYQMALTPVVVTLWYRAPEVLLQSTYATPVDMWSVGCIFAEMFRRKPLFCGNSEADQLGKIFDLIGLPPEDDWPRDVSLPRGAFPPRGPRPVQSVVPEMEESGAQLLLEMLTFNPHKRISAFRALQHSYLHKDEGNPE",
+        "binding_site_residues": [
+            {"residue": "Lys35", "position": 35},
+            {"residue": "Glu71", "position": 71},
+            {"residue": "Val96", "position": 96},
+            {"residue": "Lys112", "position": 112},
+            {"residue": "Asp158", "position": 158},
+            {"residue": "Phe164", "position": 164},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK6": {
-        "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLRHLETFEHPNVVRLFDVCTVSRTDRETKLTLVFEHVDQDLTTYLDKVPEPGVPTETIKDMMFQLLRGLDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYATPVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEKFVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA"
+        "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLRHLETFEHPNVVRLFDVCTVSRTDRETKLTLVFEHVDQDLTTYLDKVPEPGVPTETIKDMMFQLLRGLDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYATPVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEKFVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA",
+        "binding_site_residues": [
+            {"residue": "Lys43", "position": 43},
+            {"residue": "Glu81", "position": 81},
+            {"residue": "Val101", "position": 101},
+            {"residue": "Lys116", "position": 116},
+            {"residue": "Asp163", "position": 163},
+            {"residue": "Phe170", "position": 170},
+            {"residue": "Leu196", "position": 196}
+        ],
     },
     "CDK11": {
-        "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQHPNIVTVREIVVGSNMDKIYIVMNYVEHDLKSLMETMKQPFLPGEVKTLMIQLLRGVKHLHDNWILHRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVGCIFAEMFRRKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGALLSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY"
+        "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQHPNIVTVREIVVGSNMDKIYIVMNYVEHDLKSLMETMKQPFLPGEVKTLMIQLLRGVKHLHDNWILHRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVGCIFAEMFRRKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGALLSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY",
+        "binding_site_residues": [
+            {"residue": "Lys41", "position": 41},
+            {"residue": "Glu87", "position": 87},
+            {"residue": "Val113", "position": 113},
+            {"residue": "Lys128", "position": 128},
+            {"residue": "Asp175", "position": 175},
+            {"residue": "Phe182", "position": 182},
+            {"residue": "Asp206", "position": 206}
+        ],
     }
 }
 
@@ -320,15 +349,180 @@ def print_rt(message: str):
     """Print message in real-time with immediate flush"""
     print(message, flush=True)
 
+
+class TeeIO:
+    """Duplicate writes to multiple streams (e.g., stdout and log file)."""
+
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        for stream in self.streams:
+            stream.write(data)
+        return len(data)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+    def isatty(self):
+        return any(getattr(stream, "isatty", lambda: False)() for stream in self.streams)
+
+    @property
+    def encoding(self):
+        for stream in self.streams:
+            encoding = getattr(stream, "encoding", None)
+            if encoding:
+                return encoding
+        return "utf-8"
+
+
+def sanitize_filename(value: str) -> str:
+    safe_value = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    return safe_value or "structure"
+
+
+def get_output_dir() -> Optional[Path]:
+    output_dir = CONFIG.get("current_output_dir")
+    return Path(output_dir) if output_dir else None
+
+
+def save_prediction_structures(
+    prediction: Any,
+    compound_label: str,
+    protein_target: str,
+    prediction_start_time: Optional[float] = None
+) -> List[Path]:
+    output_dir = get_output_dir()
+    if output_dir is None:
+        return []
+
+    structures = getattr(prediction, "structures", None)
+    if not structures:
+        return []
+
+    structures_dir = output_dir / "boltz2_structures"
+    structures_dir.mkdir(parents=True, exist_ok=True)
+
+    compound_slug = sanitize_filename(compound_label or "compound")
+    saved_paths: List[Path] = []
+
+    for idx, structure in enumerate(structures, start=1):
+        cif_data = None
+        structure_path = None
+
+        if hasattr(structure, "mmcif") and structure.mmcif:
+            cif_data = structure.mmcif
+        if hasattr(structure, "path") and structure.path:
+            structure_path = structure.path
+        if hasattr(structure, "file_path") and structure.file_path:
+            structure_path = structure.file_path
+
+        if hasattr(structure, "model_dump"):
+            structure_dict = structure.model_dump()
+            cif_data = cif_data or structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+            structure_path = structure_path or structure_dict.get("path") or structure_dict.get("file_path")
+        elif isinstance(structure, dict):
+            cif_data = cif_data or structure.get("mmcif") or structure.get("mmCIF")
+            structure_path = structure_path or structure.get("path") or structure.get("file_path")
+
+        filename_base = f"{compound_slug}_{protein_target}_structure{idx}"
+
+        if cif_data:
+            cif_path = structures_dir / f"{filename_base}.cif"
+            with open(cif_path, "w") as cif_file:
+                cif_file.write(cif_data)
+            saved_paths.append(cif_path)
+            continue
+
+        if structure_path:
+            src = Path(structure_path)
+            if src.exists():
+                extension = src.suffix or ".cif"
+                cif_path = structures_dir / f"{filename_base}{extension}"
+                copy2(src, cif_path)
+                saved_paths.append(cif_path)
+
+    if prediction_start_time is not None:
+        existing_names = {path.name for path in saved_paths}
+        for cif_file in Path.cwd().glob("structure*.cif"):
+            try:
+                if prediction_start_time is not None and cif_file.stat().st_mtime < prediction_start_time - 1:
+                    continue
+            except OSError:
+                continue
+
+            target_name = f"{compound_slug}_{protein_target}_{cif_file.name}"
+            if target_name in existing_names:
+                continue
+
+            cif_path = structures_dir / target_name
+            try:
+                copy2(cif_file, cif_path)
+                saved_paths.append(cif_path)
+                existing_names.add(target_name)
+                try:
+                    cif_file.unlink()
+                except OSError:
+                    pass
+            except OSError:
+                continue
+
+    return saved_paths
+
+
+def format_affinity_result(row: pd.Series, target: str) -> Dict[str, Any]:
+    ic50 = row.get(f"{target}_ic50_nm")
+    pic50 = row.get(f"{target}_pic50")
+    ic50_raw = row.get(f"{target}_ic50_nm_raw")
+    pic50_raw = row.get(f"{target}_pic50_raw")
+    confidence = row.get(f"{target}_confidence")
+    accepted = row.get(f"{target}_accepted")
+
+    display_ic50 = ic50 if pd.notna(ic50) else ic50_raw
+    display_pic50 = pic50 if pd.notna(pic50) else pic50_raw
+
+    suffix = ""
+    if accepted is False and pd.notna(display_ic50):
+        suffix = " (low confidence)"
+
+    ic50_str = f"{display_ic50:.1f}" if display_ic50 is not None and not pd.isna(display_ic50) else "N/A"
+    pic50_str = f"{display_pic50:.2f}" if display_pic50 is not None and not pd.isna(display_pic50) else "N/A"
+    confidence_str = f"{confidence:.2f}" if confidence is not None and not pd.isna(confidence) else "N/A"
+
+    return {
+        "ic50_str": ic50_str,
+        "pic50_str": pic50_str,
+        "confidence_str": confidence_str,
+        "suffix": suffix,
+        "ic50_value": display_ic50,
+        "pic50_value": display_pic50,
+        "confidence": confidence,
+        "accepted": bool(accepted) if accepted is True else False
+    }
+
 async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str, 
                                                endpoint_pool: EndpointPool,
                                                confidence_threshold: float = CONFIG["confidence_threshold"],
                                                verbose: bool = True,
-                                               worker_id: int = 0) -> Dict:
+                                               worker_id: int = 0,
+                                               compound_id: Optional[str] = None) -> Dict:
     """Async predict IC50 values using Boltz2 Python client with endpoint pool"""
     
     start_time = time.time()
+    api_time = 0.0
+    ic50_nm = None
+    pic50 = None
+    confidence = 0.8
     endpoint, client = endpoint_pool.get_next_endpoint()
+    compound_label = compound_id or f"compound_{abs(hash(smiles)) % 10**8}"
+    binding_sites = CDK_PROTEIN_INFO[protein_target].get("binding_site_residues", [])
+    binding_site_summary = ", ".join(
+        f"{site['residue']} (pos {site['position']})" for site in binding_sites
+    ) if binding_sites else ""
+    binding_site_positions = [
+        int(site["position"]) for site in binding_sites if "position" in site
+    ]
     
     if verbose:
         print_rt(f"\n[Worker {worker_id}] {'='*60}")
@@ -339,6 +533,10 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
         print_rt(f"[Worker {worker_id}] SMILES: {smiles}")
         print_rt(f"[Worker {worker_id}] Protein: {protein_target}")
         print_rt(f"[Worker {worker_id}] Sequence length: {len(CDK_PROTEIN_INFO[protein_target]['sequence'])} aa")
+        if compound_id:
+            print_rt(f"[Worker {worker_id}] Compound ID: {compound_id}")
+        if binding_site_positions:
+            print_rt(f"[Worker {worker_id}] Binding site residue indices: {binding_site_positions}")
     
     try:
         if BOLTZ2_AVAILABLE and client and endpoint:
@@ -364,9 +562,21 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
                 predict_affinity=True
             )
             
+            constraints = None
+            if binding_site_positions:
+                constraints = [
+                    PocketConstraint(
+                        ligand_id=ligand.id,
+                        polymer_id=protein.id,
+                        residue_ids=binding_site_positions,
+                        binder=ligand.id
+                    )
+                ]
+            
             request = PredictionRequest(
                 polymers=[protein],
                 ligands=[ligand],
+                constraints=constraints,
                 recycling_steps=3,
                 sampling_steps=10,
                 diffusion_samples=1,
@@ -374,6 +584,13 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
                 diffusion_samples_affinity=2,
                 affinity_mw_correction=True
             )
+            
+            if verbose:
+                print_rt(f"[Worker {worker_id}] \nREQUEST PAYLOAD:")
+                try:
+                    print(json.dumps(request.model_dump(), indent=2, default=str))
+                except Exception:
+                    print_rt(f"[Worker {worker_id}] {request}")
             
             if verbose:
                 print_rt(f"[Worker {worker_id}] \nBOLTZ2 REQUEST PARAMETERS:")
@@ -389,6 +606,12 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
                 
                 if verbose:
                     print_rt(f"[Worker {worker_id}] Prediction successful in {api_time:.2f} seconds")
+                saved_cif_paths = save_prediction_structures(
+                    prediction,
+                    compound_label,
+                    protein_target,
+                    prediction_start_time=start_time
+                )
             except Exception as pred_error:
                 if verbose:
                     print_rt(f"[Worker {worker_id}] Prediction failed: {pred_error}")
@@ -446,6 +669,10 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
             if verbose:
                 print_rt(f"[Worker {worker_id}] \nConfidence: {confidence:.3f}")
                 print_rt(f"[Worker {worker_id}] Accepted: {confidence >= confidence_threshold}")
+                if 'saved_cif_paths' in locals() and saved_cif_paths:
+                    print_rt(f"[Worker {worker_id}] Saved {len(saved_cif_paths)} CIF file(s):")
+                    for cif_path in saved_cif_paths:
+                        print_rt(f"[Worker {worker_id}]   - {cif_path}")
             
         else:
             # No mock fallback - raise error if no valid client/endpoint
@@ -463,15 +690,22 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
 
         total_time = time.time() - start_time
 
+        ic50_raw_value = float(ic50_nm) if ic50_nm is not None else np.nan
+        pic50_raw_value = float(pic50) if pic50 is not None else np.nan
+        prediction_accepted = confidence >= confidence_threshold
+
         return {
-            'ic50_nm': ic50_nm,
-            'pic50': pic50,
+            'ic50_nm': ic50_nm if prediction_accepted else np.nan,
+            'pic50': pic50 if prediction_accepted else np.nan,
             'confidence': confidence,
-            'accepted': confidence >= confidence_threshold,
+            'accepted': prediction_accepted,
             'api_time': api_time,
             'total_time': total_time,
             'endpoint': endpoint,
-            'worker_id': worker_id
+            'worker_id': worker_id,
+            'ic50_nm_raw': ic50_raw_value,
+            'pic50_raw': pic50_raw_value,
+            'binding_site_residues': binding_site_summary
         }
     
     except Exception as e:
@@ -505,12 +739,24 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     """Calculate binding affinities in parallel using multiple endpoints"""
     print_rt(f"\nCalculating binding affinities using {len(endpoint_pool.healthy_endpoints)} endpoints with {max_workers} workers...")
     
+    for target in ["CDK4", "CDK6", "CDK11"]:
+        df[f"{target}_ic50_nm"] = np.nan
+        df[f"{target}_pic50"] = np.nan
+        df[f"{target}_confidence"] = np.nan
+        df[f"{target}_accepted"] = False
+        df[f"{target}_ic50_nm_raw"] = np.nan
+        df[f"{target}_pic50_raw"] = np.nan
+        df[f"{target}_binding_site_residues"] = ""
+        df[f"{target}_endpoint"] = ""
+        df[f"{target}_api_time"] = np.nan
+    
     # Prepare prediction tasks
     tasks = []
     for idx, row in df.iterrows():
         smiles = row['smiles']
+        compound_id = row.get('compound_id', f"compound_{idx+1}")
         for target in ["CDK4", "CDK6", "CDK11"]:
-            tasks.append((idx, smiles, target))
+            tasks.append((idx, smiles, target, compound_id))
     
     results = {}
     completed_tasks = 0
@@ -521,9 +767,9 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     
     async def worker_task(task_data, worker_id):
         async with semaphore:
-            idx, smiles, target = task_data
+            idx, smiles, target, compound_id = task_data
             result = await predict_binding_affinity_boltz2_async(
-                smiles, target, endpoint_pool, CONFIG["confidence_threshold"], verbose, worker_id
+                smiles, target, endpoint_pool, CONFIG["confidence_threshold"], verbose, worker_id, compound_id
             )
             return (idx, target, result)
     
@@ -551,17 +797,41 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
         for target in ["CDK4", "CDK6", "CDK11"]:
             if target in results[idx]:
                 result = results[idx][target]
-                df.loc[idx, f'{target}_ic50_nm'] = result['ic50_nm']
-                df.loc[idx, f'{target}_pic50'] = result['pic50']
+                df.loc[idx, f'{target}_ic50_nm'] = result.get('ic50_nm', np.nan)
+                df.loc[idx, f'{target}_pic50'] = result.get('pic50', np.nan)
                 df.loc[idx, f'{target}_confidence'] = result['confidence']
                 df.loc[idx, f'{target}_accepted'] = result['accepted']
-                df.loc[idx, f'{target}_api_time'] = result['api_time']
-                df.loc[idx, f'{target}_endpoint'] = result['endpoint']
+                df.loc[idx, f'{target}_api_time'] = result.get('api_time', np.nan)
+                df.loc[idx, f'{target}_endpoint'] = result.get('endpoint', '')
+                df.loc[idx, f'{target}_ic50_nm_raw'] = result.get('ic50_nm_raw', np.nan)
+                df.loc[idx, f'{target}_pic50_raw'] = result.get('pic50_raw', np.nan)
+                df.loc[idx, f'{target}_binding_site_residues'] = result.get('binding_site_residues', '')
     
     # Calculate selectivity metrics
-    df['on_target_pic50'] = df[['CDK4_pic50', 'CDK6_pic50']].mean(axis=1)
-    df['cdk11_avoidance'] = np.maximum(0, df['on_target_pic50'] - df['CDK11_pic50'])
-    df['selectivity_ratio'] = df['on_target_pic50'] / (df['CDK11_pic50'] + 1e-6)
+    # Use raw fallback values when accepted predictions missing
+    df['CDK4_pic50_eff'] = df.apply(
+        lambda row: row['CDK4_pic50'] if pd.notna(row['CDK4_pic50']) else row['CDK4_pic50_raw'], axis=1
+    )
+    df['CDK6_pic50_eff'] = df.apply(
+        lambda row: row['CDK6_pic50'] if pd.notna(row['CDK6_pic50']) else row['CDK6_pic50_raw'], axis=1
+    )
+    df['CDK11_pic50_eff'] = df.apply(
+        lambda row: row['CDK11_pic50'] if pd.notna(row['CDK11_pic50']) else row['CDK11_pic50_raw'], axis=1
+    )
+    df['CDK4_ic50_nm_eff'] = df.apply(
+        lambda row: row['CDK4_ic50_nm'] if pd.notna(row['CDK4_ic50_nm']) else row['CDK4_ic50_nm_raw'], axis=1
+    )
+    df['CDK6_ic50_nm_eff'] = df.apply(
+        lambda row: row['CDK6_ic50_nm'] if pd.notna(row['CDK6_ic50_nm']) else row['CDK6_ic50_nm_raw'], axis=1
+    )
+    df['CDK11_ic50_nm_eff'] = df.apply(
+        lambda row: row['CDK11_ic50_nm'] if pd.notna(row['CDK11_ic50_nm']) else row['CDK11_ic50_nm_raw'], axis=1
+    )
+
+    df['on_target_pic50'] = df[['CDK4_pic50_eff', 'CDK6_pic50_eff']].mean(axis=1)
+    df['on_target_ic50_nm'] = df[['CDK4_ic50_nm_eff', 'CDK6_ic50_nm_eff']].mean(axis=1)
+    df['cdk11_avoidance'] = np.maximum(0, df['on_target_pic50'] - df['CDK11_pic50_eff'])
+    df['selectivity_ratio'] = df['on_target_pic50'] / (df['CDK11_pic50_eff'] + 1e-6)
     
     if verbose:
         print_rt(f"\nAFFINITY PREDICTION RESULTS SUMMARY:")
@@ -569,9 +839,12 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
         print_rt(f"Endpoints used: {len(endpoint_pool.healthy_endpoints)}")
         for idx, row in df.iterrows():
             print_rt(f"Compound {idx + 1}:")
-            print_rt(f"  CDK4:  IC50 = {row.get('CDK4_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK4_pic50', np.nan):.2f}")
-            print_rt(f"  CDK6:  IC50 = {row.get('CDK6_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK6_pic50', np.nan):.2f}")
-            print_rt(f"  CDK11: IC50 = {row.get('CDK11_ic50_nm', np.nan):.1f} nM, pIC50 = {row.get('CDK11_pic50', np.nan):.2f}")
+            cdk4 = format_affinity_result(row, "CDK4")
+            cdk6 = format_affinity_result(row, "CDK6")
+            cdk11 = format_affinity_result(row, "CDK11")
+            print_rt(f"  CDK4:  IC50 = {cdk4['ic50_str']} nM{cdk4['suffix']}, pIC50 = {cdk4['pic50_str']}, confidence = {cdk4['confidence_str']}")
+            print_rt(f"  CDK6:  IC50 = {cdk6['ic50_str']} nM{cdk6['suffix']}, pIC50 = {cdk6['pic50_str']}, confidence = {cdk6['confidence_str']}")
+            print_rt(f"  CDK11: IC50 = {cdk11['ic50_str']} nM{cdk11['suffix']}, pIC50 = {cdk11['pic50_str']}, confidence = {cdk11['confidence_str']}")
             print_rt(f"  Selectivity: {row.get('selectivity_ratio', np.nan):.2f}, CDK11 avoidance: {row.get('cdk11_avoidance', np.nan):.2f}")
     
     return df
@@ -758,15 +1031,18 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
     for i, (_, row) in enumerate(top_25.iterrows(), 1):
         score_class = "score-high" if row['composite_score'] > 0.7 else "score-medium" if row['composite_score'] > 0.5 else "score-low"
         endpoint = row.get('CDK4_endpoint', 'Unknown')
+        cdk4 = format_affinity_result(row, "CDK4")
+        cdk6 = format_affinity_result(row, "CDK6")
+        cdk11 = format_affinity_result(row, "CDK11")
         
         html_content += f"""
                     <tr class="{score_class}">
                         <td>{i}</td>
                         <td style="font-family: monospace; text-align: left;">{row['smiles'][:50]}{'...' if len(row['smiles']) > 50 else ''}</td>
                         <td>{row['composite_score']:.3f}</td>
-                        <td>{row.get('CDK4_pic50', 0):.2f}</td>
-                        <td>{row.get('CDK6_pic50', 0):.2f}</td>
-                        <td>{row.get('CDK11_pic50', 0):.2f}</td>
+                        <td>{cdk4['pic50_str']}</td>
+                        <td>{cdk6['pic50_str']}</td>
+                        <td>{cdk11['pic50_str']}</td>
                         <td>{row.get('selectivity_ratio', 0):.2f}</td>
                         <td>{row.get('qed', 0):.3f}</td>
                         <td>{row.get('sa_score', 0):.2f}</td>
@@ -813,102 +1089,144 @@ async def main():
     
     args = parser.parse_args()
     
-    # Parse endpoints
     endpoint_ports = [int(port.strip()) for port in args.endpoints.split(',')]
     CONFIG["endpoints"] = endpoint_ports
     CONFIG["max_workers"] = args.max_workers
     CONFIG["novelty_cutoff"] = args.novelty_cutoff
     CONFIG["boltz2_url"] = args.boltz2_url
     
-    print_rt(f"Starting parallel evaluation for team: {args.team_name}")
-    print_rt(f"Boltz2 base URL: {CONFIG['boltz2_url']}")
-    print_rt(f"Using endpoints: {endpoint_ports}")
-    print_rt(f"Max workers: {args.max_workers}")
+    base_output_dir = Path(args.output_dir)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    team_slug = sanitize_filename(args.team_name)
+    output_dir = base_output_dir / f"{team_slug}_{timestamp}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    CONFIG["current_output_dir"] = str(output_dir)
     
-    # Load SMILES data
+    log_path = output_dir / f"{team_slug}_parallel_evaluation.log"
+    log_file = open(log_path, "w")
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stdout = TeeIO(original_stdout, log_file)
+    sys.stderr = TeeIO(original_stderr, log_file)
+    
     try:
-        df = pd.read_csv(args.smiles_file)
-        if 'smiles' not in df.columns:
-            if 'SMILES' in df.columns:
-                df = df.rename(columns={'SMILES': 'smiles'})
-            else:
-                print("Error: No 'smiles' or 'SMILES' column found in the input file")
+        print_rt(f"Evaluation log will be saved to: {log_path}")
+        print_rt(f"Starting parallel evaluation for team: {args.team_name}")
+        print_rt(f"Boltz2 base URL: {CONFIG['boltz2_url']}")
+        print_rt(f"Using endpoints: {endpoint_ports}")
+        print_rt(f"Max workers: {args.max_workers}")
+
+        smiles_path = Path(args.smiles_file)
+        if not smiles_path.exists():
+            print_rt(f"Error: Input file '{smiles_path}' not found.")
+            return
+
+        if not args.skip_novelty:
+            chembl_cache = Path(CONFIG["chembl_data_path"]) / "chembl_fingerprints.pkl"
+            if not chembl_cache.exists():
+                print_rt(f"Error: Required ChEMBL fingerprint cache not found at {chembl_cache}.")
+                print_rt("Run the ChEMBL fingerprint preparation script or supply --skip-novelty.")
                 return
-        
-        print_rt(f"Loaded {len(df)} compounds from {args.smiles_file}")
-    except Exception as e:
-        print(f"Error loading SMILES file: {e}")
-        return
-    
-    # Create output directory
-    os.makedirs(args.output_dir, exist_ok=True)
-    
-    start_time = time.time()
-    
-    if args.skip_boltz2:
-        print_rt("Skipping Boltz2 predictions (using placeholder affinity values)")
-        for target in ["CDK4", "CDK6", "CDK11"]:
-            df[f"{target}_ic50_nm"] = np.nan
-            df[f"{target}_pic50"] = np.nan
-            df[f"{target}_confidence"] = np.nan
-            df[f"{target}_accepted"] = False
-        df['on_target_pic50'] = np.nan
-        df['cdk11_avoidance'] = np.nan
-        df['selectivity_ratio'] = np.nan
-    else:
-        # Initialize endpoint pool
-        endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
-        await endpoint_pool.initialize()
-        
-        # Calculate binding affinities in parallel
-        df = await calculate_all_binding_affinities_parallel(
-            df, endpoint_pool, args.max_workers, args.verbose
-        )
-    
-    # Calculate other scores
-    df = calculate_qed_scores(df)
-    df = calculate_sa_scores(df)
 
-    if not args.skip_pains:
-        df = apply_pains_filter_parallel(df)
-    else:
-        df['is_pains'] = False
-        df['pains_score'] = 1.0
-        print_rt("Skipping PAINS filtering (set to non-PAINS)")
+        try:
+            df = pd.read_csv(smiles_path)
+            if 'smiles' not in df.columns:
+                if 'SMILES' in df.columns:
+                    df = df.rename(columns={'SMILES': 'smiles'})
+                else:
+                    print_rt("Error: No 'smiles' or 'SMILES' column found in the input file.")
+                    return
+            if 'compound_id' not in df.columns:
+                df['compound_id'] = [f"COMP_{i+1:04d}" for i in range(len(df))]
 
-    if not args.skip_novelty:
-        df = calculate_novelty_scores(df, CONFIG["chembl_data_path"], CONFIG["novelty_cutoff"])
-    else:
-        df['max_chembl_similarity'] = np.nan
-        df['is_novel'] = True
-        df['novelty_normalized'] = 0.5
-        print_rt("Skipping novelty calculations (set to neutral score)")
-    
-    # Normalize and calculate composite scores
-    df = normalize_scores(df)
-    df = calculate_composite_scores(df)
-    
-    # Generate outputs
-    generate_html_report(df, args.team_name, args.output_dir)
-    
-    # Save detailed CSV
-    csv_path = os.path.join(args.output_dir, f"{args.team_name}_detailed_results.csv")
-    df.to_csv(csv_path, index=False)
-    
-    total_time = time.time() - start_time
-    
-    print_rt(f"\nEvaluation completed successfully!")
-    print_rt(f"Total time: {total_time:.2f} seconds")
-    print_rt(f"Average time per compound: {total_time/len(df):.2f} seconds")
-    print_rt(f"Results saved to: {args.output_dir}")
-    print_rt(f"HTML report: {args.team_name}_evaluation_report.html")
-    print_rt(f"Detailed CSV: {args.team_name}_detailed_results.csv")
-    
-    # Show top results
-    df_sorted = df.sort_values('composite_score', ascending=False)
-    print_rt(f"\nTop 5 compounds:")
-    for i, (_, row) in enumerate(df_sorted.head(5).iterrows(), 1):
-        print_rt(f"{i}. Score: {row['composite_score']:.3f}, SMILES: {row['smiles'][:60]}...")
+            print_rt(f"Loaded {len(df)} compounds from {smiles_path}")
+        except Exception as load_exc:
+            print_rt(f"Error loading SMILES file: {load_exc}")
+            traceback.print_exc()
+            return
+
+        start_time = time.time()
+
+        if args.skip_boltz2:
+            print_rt("Skipping Boltz2 predictions (using placeholder affinity values)")
+            for target in ["CDK4", "CDK6", "CDK11"]:
+                df[f"{target}_ic50_nm"] = np.nan
+                df[f"{target}_pic50"] = np.nan
+                df[f"{target}_confidence"] = np.nan
+                df[f"{target}_accepted"] = False
+                df[f"{target}_ic50_nm_raw"] = np.nan
+                df[f"{target}_pic50_raw"] = np.nan
+                binding_sites = CDK_PROTEIN_INFO[target].get("binding_site_residues", [])
+                binding_site_summary = ", ".join(
+                    f"{site['residue']} (pos {site['position']})" for site in binding_sites
+                ) if binding_sites else ""
+                df[f"{target}_binding_site_residues"] = binding_site_summary
+            df['on_target_pic50'] = np.nan
+            df['cdk11_avoidance'] = np.nan
+            df['selectivity_ratio'] = np.nan
+        else:
+            endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
+            await endpoint_pool.initialize()
+            df = await calculate_all_binding_affinities_parallel(
+                df, endpoint_pool, args.max_workers, args.verbose
+            )
+
+        df = calculate_qed_scores(df)
+        df = calculate_sa_scores(df)
+
+        if not args.skip_pains:
+            df = apply_pains_filter_parallel(df)
+        else:
+            df['is_pains'] = False
+            df['pains_score'] = 1.0
+            df['pains_score_norm'] = 1.0
+            print_rt("Skipping PAINS filtering (set to non-PAINS)")
+
+        if not args.skip_novelty:
+            df = calculate_novelty_scores(df, CONFIG["chembl_data_path"], CONFIG["novelty_cutoff"])
+        else:
+            df['max_chembl_similarity'] = np.nan
+            df['is_novel'] = True
+            df['novelty_normalized'] = 0.5
+            print_rt("Skipping novelty calculations (set to neutral score)")
+
+        df = normalize_scores(df)
+        df = calculate_composite_scores(df)
+
+        generate_html_report(df, args.team_name, str(output_dir))
+
+        csv_path = output_dir / f"{team_slug}_detailed_results.csv"
+        df.to_csv(csv_path, index=False)
+
+        total_time = time.time() - start_time
+
+        print_rt(f"\nEvaluation completed successfully!")
+        print_rt(f"Total time: {total_time:.2f} seconds")
+        print_rt(f"Average time per compound: {total_time/len(df):.2f} seconds")
+        print_rt(f"Results saved to: {output_dir}")
+        print_rt(f"HTML report: {(output_dir / f'{args.team_name}_evaluation_report.html').name}")
+        print_rt(f"Detailed CSV: {csv_path.name}")
+
+        df_sorted = df.sort_values('composite_score', ascending=False)
+        print_rt(f"\nTop 5 compounds:")
+        for i, (_, row) in enumerate(df_sorted.head(5).iterrows(), 1):
+            cdk4 = format_affinity_result(row, "CDK4")
+            print_rt(
+                f"{i}. Score: {row['composite_score']:.3f}, "
+                f"CDK4 pIC50={cdk4['pic50_str']} (conf {cdk4['confidence_str']}), "
+                f"SMILES: {row['smiles'][:60]}..."
+            )
+
+        print_rt(f"\nLog saved to: {log_path}")
+
+    except Exception as exc:
+        print_rt(f"Unexpected error during evaluation: {exc}")
+        traceback.print_exc()
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        log_file.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
+
