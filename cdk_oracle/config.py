@@ -79,7 +79,8 @@ class CDKConfig:
     
     # === Data Paths ===
     data_dir: Path = field(default_factory=lambda: Path(__file__).parent.parent / "data")
-    output_dir: Path = field(default_factory=lambda: Path("./output"))
+    output_dir: Path = None  # Set in __post_init__ with timestamp
+    output_base: Path = field(default_factory=lambda: Path("./output"))
     
     # === Target Proteins ===
     on_target: str = "CDK4"
@@ -131,9 +132,19 @@ class CDKConfig:
     generate_plots: bool = True
     
     def __post_init__(self):
-        """Ensure paths exist."""
+        """Ensure paths exist and create timestamped output directory."""
+        from datetime import datetime
+        
         self.data_dir = Path(self.data_dir)
-        self.output_dir = Path(self.output_dir)
+        self.output_base = Path(self.output_base)
+        
+        # Create timestamped output directory if not explicitly set
+        if self.output_dir is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.output_dir = self.output_base / f"run_{timestamp}"
+        else:
+            self.output_dir = Path(self.output_dir)
+        
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def get_fasta_path(self, protein: str) -> Path:

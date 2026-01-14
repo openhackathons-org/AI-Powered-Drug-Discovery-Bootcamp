@@ -670,13 +670,48 @@ class CDKDesignPipeline:
             runtime_seconds=time.time() - start_time
         )
         
-        # Step 5: Generate report
+        # Step 5: Save all results to timestamped output folder
+        output_dir = self.config.output_dir
+        if verbose:
+            print(f"\nSaving results to: {output_dir}")
+        
+        # Save all compounds with scores to CSV
+        scores_df.to_csv(output_dir / "all_compounds_scores.csv", index=False)
+        
+        # Save top compounds separately
+        top_df = scores_df.nsmallest(self.config.top_n_compounds, "rank")
+        top_df.to_csv(output_dir / "top_compounds.csv", index=False)
+        
+        # Save summary as JSON
+        import json
+        with open(output_dir / "run_summary.json", "w") as f:
+            json.dump(summary, f, indent=2, default=str)
+        
+        # Save generated SMILES list
+        with open(output_dir / "generated_smiles.txt", "w") as f:
+            for smi in generated:
+                f.write(smi + "\n")
+        
+        # Save seed molecules
+        with open(output_dir / "seed_molecules.txt", "w") as f:
+            for smi in seed_smiles:
+                f.write(smi + "\n")
+        
+        if verbose:
+            print(f"  ✓ all_compounds_scores.csv ({len(scores_df)} compounds)")
+            print(f"  ✓ top_compounds.csv (top {len(top_df)})")
+            print(f"  ✓ run_summary.json")
+            print(f"  ✓ generated_smiles.txt")
+        
+        # Step 6: Generate HTML report
         if generate_report:
             self.visualizer.generate_report(
                 scores_df,
                 summary,
-                output_dir=self.config.output_dir
+                output_dir=output_dir
             )
+            if verbose:
+                print(f"  ✓ design_report.html")
         
         return results
     
