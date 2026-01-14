@@ -433,13 +433,93 @@ class CDKDesignPipeline:
         
         return pd.DataFrame(self._best_compounds[:n])
     
+    def _get_affinities_with_cache(
+        self,
+        smiles_list: List[str],
+        use_msa: bool = True,
+        skip_generation: bool = False,
+        verbose: bool = True
+    ) -> pd.DataFrame:
+        """Get affinities, reusing cached predictions from optimization loop.
+        
+        This avoids redundant Boltz-2 calls for molecules already scored during generation.
+        
+        Args:
+            smiles_list: List of SMILES to get affinities for
+            use_msa: Use MSA for new predictions
+            skip_generation: If True, no cache available (direct evaluation mode)
+            verbose: Print progress
+            
+        Returns:
+            DataFrame with affinity predictions
+        """
+        on_target = self.config.on_target
+        anti_target = self.config.anti_target
+        
+        # Build cache from optimization loop results
+        affinity_cache = {}
+        if not skip_generation and hasattr(self, '_best_compounds') and self._best_compounds:
+            for comp in self._best_compounds:
+                smi = comp.get("smiles")
+                if smi and comp.get("cdk4_ic50") is not None:
+                    affinity_cache[smi] = {
+                        "smiles": smi,
+                        f"{on_target}_IC50_pred": comp.get("cdk4_ic50"),
+                        f"{anti_target}_IC50_pred": comp.get("cdk11_ic50"),
+                        f"{on_target}_success": True,
+                        f"{anti_target}_success": True,
+                    }
+        
+        # Identify which molecules need new predictions
+        cached_smiles = set(affinity_cache.keys())
+        need_prediction = [smi for smi in smiles_list if smi not in cached_smiles]
+        
+        if verbose:
+            print(f"\nAffinity predictions:")
+            print(f"  Total molecules: {len(smiles_list)}")
+            print(f"  Cached from optimization: {len(cached_smiles & set(smiles_list))}")
+            print(f"  Need new predictions: {len(need_prediction)}")
+        
+        # Get new predictions if needed
+        new_results = []
+        if need_prediction:
+            if verbose:
+                print(f"\nPredicting affinities for {len(need_prediction)} uncached compounds...")
+            new_results = self.boltz2.predict_batch(
+                need_prediction,
+                proteins=[on_target, anti_target],
+                use_msa=use_msa,
+                verbose=verbose
+            )
+        
+        # Combine cached + new results, preserving original order
+        all_results = []
+        new_results_dict = {r["smiles"]: r for r in new_results}
+        
+        for smi in smiles_list:
+            if smi in affinity_cache:
+                all_results.append(affinity_cache[smi])
+            elif smi in new_results_dict:
+                all_results.append(new_results_dict[smi])
+            else:
+                # Fallback: molecule with no prediction
+                all_results.append({
+                    "smiles": smi,
+                    f"{on_target}_IC50_pred": None,
+                    f"{anti_target}_IC50_pred": None,
+                    f"{on_target}_success": False,
+                    f"{anti_target}_success": False,
+                })
+        
+        return pd.DataFrame(all_results)
+    
     def predict_affinities(
         self,
         smiles_list: List[str],
         use_msa: bool = True,
         verbose: bool = True
     ) -> pd.DataFrame:
-        """Predict binding affinities using Boltz2.
+        """Predict binding affinities using Boltz2 (direct, no caching).
         
         Args:
             smiles_list: List of SMILES to predict
@@ -548,8 +628,13 @@ class CDKDesignPipeline:
         if not generated:
             raise ValueError("No molecules generated!")
         
-        # Step 2: Predict affinities
-        affinity_df = self.predict_affinities(generated, use_msa=use_msa, verbose=verbose)
+        # Step 2: Get affinities - REUSE cached predictions from optimization loop
+        affinity_df = self._get_affinities_with_cache(
+            generated, 
+            use_msa=use_msa, 
+            skip_generation=skip_generation,
+            verbose=verbose
+        )
         
         # Step 3: Score compounds
         scores_df = self.score_compounds(
