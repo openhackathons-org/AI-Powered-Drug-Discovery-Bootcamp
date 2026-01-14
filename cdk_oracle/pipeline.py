@@ -109,6 +109,48 @@ class CDKDesignPipeline:
         """
         return self.health_checker.print_status()
     
+    def _calculate_diversity(self, smiles_list: List[str]) -> float:
+        """Calculate molecular diversity as average pairwise Tanimoto distance.
+        
+        Diversity = 1 - average_pairwise_similarity
+        
+        Higher values = more diverse set of molecules.
+        
+        Args:
+            smiles_list: List of SMILES strings
+            
+        Returns:
+            Diversity score (0-1), where 1 = maximally diverse
+        """
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+        from rdkit.DataStructs import TanimotoSimilarity
+        
+        if len(smiles_list) < 2:
+            return 1.0  # Single molecule = trivially diverse
+        
+        # Calculate fingerprints
+        fps = []
+        for smi in smiles_list:
+            mol = Chem.MolFromSmiles(smi)
+            if mol:
+                fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+                fps.append(fp)
+        
+        if len(fps) < 2:
+            return 1.0
+        
+        # Calculate pairwise similarities
+        similarities = []
+        for i in range(len(fps)):
+            for j in range(i + 1, len(fps)):
+                sim = TanimotoSimilarity(fps[i], fps[j])
+                similarities.append(sim)
+        
+        # Diversity = 1 - average similarity
+        avg_similarity = np.mean(similarities)
+        return 1.0 - avg_similarity
+    
     def generate_molecules(
         self,
         seed_smiles: List[str],
@@ -386,6 +428,9 @@ class CDKDesignPipeline:
                 best_score = max(final_scores)
                 mean_score = np.mean([s for s in final_scores if s > 0])
                 
+                # Calculate molecular diversity (average pairwise Tanimoto distance)
+                diversity = self._calculate_diversity([c["smiles"] for c in valid_candidates])
+                
                 self._history.append({
                     "seed_idx": seed_idx,
                     "iteration": iteration,
@@ -393,6 +438,7 @@ class CDKDesignPipeline:
                     "best_score": best_score,
                     "mean_score": mean_score,
                     "boltz2_count": len(boltz2_scores),
+                    "diversity": diversity,
                 })
                 
                 if verbose:
