@@ -44,7 +44,7 @@ This dataset contains 20 compounds for testing the OpenHackathon evaluation pipe
 ## Expected Results
 
 ### CDK Inhibitors (Should Show):
-- **High affinity** for CDK4 and CDK6 (low IC50, high pIC50)
+- **High affinity** for CDK4 (low IC50, high pIC50)
 - **Variable affinity** for CDK11 (depends on selectivity)
 - **Good drug-likeness** (QED > 0.5)
 - **Reasonable synthetic accessibility**
@@ -75,7 +75,7 @@ python evaluate_submission_parallel_no_mock.py demo_compounds.csv DemoSet \
 ## Expected Performance Benchmarks
 
 ### CDK Inhibitors (Top 10):
-- **pIC50 range**: 6.0 - 9.0 for CDK4/CDK6
+- **pIC50 range**: 6.0 - 9.0 for CDK4
 - **Selectivity ratio**: Variable (1.0 - 10.0)
 - **QED**: 0.4 - 0.8 (drug-like)
 - **Composite scores**: Should rank in top 50%
@@ -93,7 +93,7 @@ This dataset serves as a **positive/negative control** for the evaluation pipeli
 ✅ **Good evaluation system should**:
 - Rank known CDK inhibitors higher than decoys
 - Show clear binding affinity differences
-- Demonstrate selectivity for CDK4/6 vs CDK11
+- Demonstrate selectivity for CDK4 vs CDK11
 
 ❌ **Poor evaluation system might**:
 - Show random rankings

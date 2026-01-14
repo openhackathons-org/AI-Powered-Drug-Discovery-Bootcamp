@@ -26,6 +26,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 from shutil import copy2
+from Bio.PDB import MMCIFParser, PDBIO
+from string import ascii_uppercase, digits
 import re
 import traceback
 import warnings
@@ -236,18 +238,6 @@ CDK_PROTEIN_INFO = {
             {"residue": "Leu196", "position": 196}
         ],
     },
-    "CDK6": {
-        "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLRHLETFEHPNVVRLFDVCTVSRTDRETKLTLVFEHVDQDLTTYLDKVPEPGVPTETIKDMMFQLLRGLDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYATPVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEKFVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA",
-        "binding_site_residues": [
-            {"residue": "Lys43", "position": 43},
-            {"residue": "Glu81", "position": 81},
-            {"residue": "Val101", "position": 101},
-            {"residue": "Lys116", "position": 116},
-            {"residue": "Asp163", "position": 163},
-            {"residue": "Phe170", "position": 170},
-            {"residue": "Leu196", "position": 196}
-        ],
-    },
     "CDK11": {
         "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQHPNIVTVREIVVGSNMDKIYIVMNYVEHDLKSLMETMKQPFLPGEVKTLMIQLLRGVKHLHDNWILHRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVGCIFAEMFRRKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGALLSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY",
         "binding_site_residues": [
@@ -387,6 +377,35 @@ def get_output_dir() -> Optional[Path]:
     return Path(output_dir) if output_dir else None
 
 
+def convert_cif_to_pdb(cif_path: Path, pdb_path: Path) -> None:
+    """Convert an mmCIF file to PDB format using Biopython."""
+    parser = MMCIFParser(QUIET=True)
+    structure_id = cif_path.stem
+    structure = parser.get_structure(structure_id, str(cif_path))
+
+    available_ids = list(ascii_uppercase + digits)
+    used_ids = set()
+
+    for model in structure:
+        for chain in model:
+            cid = (chain.id or "").strip()
+            if len(cid) == 1 and cid in available_ids and cid not in used_ids:
+                used_ids.add(cid)
+                continue
+
+            for candidate in available_ids:
+                if candidate not in used_ids:
+                    chain.id = candidate
+                    used_ids.add(candidate)
+                    break
+            else:
+                raise ValueError("Unable to assign unique chain ID within PDB format limits.")
+
+    io = PDBIO()
+    io.set_structure(structure)
+    io.save(str(pdb_path))
+
+
 def save_prediction_structures(
     prediction: Any,
     compound_label: str,
@@ -405,7 +424,7 @@ def save_prediction_structures(
     structures_dir.mkdir(parents=True, exist_ok=True)
 
     compound_slug = sanitize_filename(compound_label or "compound")
-    saved_paths: List[Path] = []
+    saved_cif_paths: List[Path] = []
 
     for idx, structure in enumerate(structures, start=1):
         cif_data = None
@@ -432,7 +451,7 @@ def save_prediction_structures(
             cif_path = structures_dir / f"{filename_base}.cif"
             with open(cif_path, "w") as cif_file:
                 cif_file.write(cif_data)
-            saved_paths.append(cif_path)
+            saved_cif_paths.append(cif_path)
             continue
 
         if structure_path:
@@ -441,10 +460,10 @@ def save_prediction_structures(
                 extension = src.suffix or ".cif"
                 cif_path = structures_dir / f"{filename_base}{extension}"
                 copy2(src, cif_path)
-                saved_paths.append(cif_path)
+                saved_cif_paths.append(cif_path)
 
     if prediction_start_time is not None:
-        existing_names = {path.name for path in saved_paths}
+        existing_names = {path.name for path in saved_cif_paths}
         for cif_file in Path.cwd().glob("structure*.cif"):
             try:
                 if prediction_start_time is not None and cif_file.stat().st_mtime < prediction_start_time - 1:
@@ -454,21 +473,37 @@ def save_prediction_structures(
 
             target_name = f"{compound_slug}_{protein_target}_{cif_file.name}"
             if target_name in existing_names:
+                try:
+                    cif_file.unlink()
+                except OSError:
+                    pass
                 continue
 
             cif_path = structures_dir / target_name
             try:
                 copy2(cif_file, cif_path)
-                saved_paths.append(cif_path)
+                saved_cif_paths.append(cif_path)
                 existing_names.add(target_name)
+            except OSError:
+                continue
+            finally:
                 try:
                     cif_file.unlink()
                 except OSError:
                     pass
-            except OSError:
-                continue
 
-    return saved_paths
+    for cif_path in saved_cif_paths:
+        pdb_path = cif_path.with_suffix(".pdb")
+        try:
+            convert_cif_to_pdb(cif_path, pdb_path)
+            try:
+                cif_path.unlink()
+            except OSError:
+                pass
+        except Exception:
+            continue
+
+    return saved_cif_paths
 
 
 def format_affinity_result(row: pd.Series, target: str) -> Dict[str, Any]:
@@ -655,7 +690,7 @@ async def predict_binding_affinity_boltz2_async(smiles: str, protein_target: str
                     print_rt(f"[Worker {worker_id}]   Warning: No affinity data in response, using estimated values")
                 
                 # Use mock values based on target
-                if protein_target in ["CDK4", "CDK6"]:
+                if protein_target in ["CDK4"]:
                     ic50_nm = np.random.lognormal(np.log(50), 1.5)
                 else:
                     ic50_nm = np.random.lognormal(np.log(5000), 1.5)
@@ -739,7 +774,7 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     """Calculate binding affinities in parallel using multiple endpoints"""
     print_rt(f"\nCalculating binding affinities using {len(endpoint_pool.healthy_endpoints)} endpoints with {max_workers} workers...")
     
-    for target in ["CDK4", "CDK6", "CDK11"]:
+    for target in ["CDK4", "CDK11"]:
         df[f"{target}_ic50_nm"] = np.nan
         df[f"{target}_pic50"] = np.nan
         df[f"{target}_confidence"] = np.nan
@@ -755,7 +790,7 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     for idx, row in df.iterrows():
         smiles = row['smiles']
         compound_id = row.get('compound_id', f"compound_{idx+1}")
-        for target in ["CDK4", "CDK6", "CDK11"]:
+        for target in ["CDK4", "CDK11"]:
             tasks.append((idx, smiles, target, compound_id))
     
     results = {}
@@ -794,7 +829,7 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     
     # Apply results to dataframe
     for idx in results:
-        for target in ["CDK4", "CDK6", "CDK11"]:
+        for target in ["CDK4", "CDK11"]:
             if target in results[idx]:
                 result = results[idx][target]
                 df.loc[idx, f'{target}_ic50_nm'] = result.get('ic50_nm', np.nan)
@@ -812,8 +847,6 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     df['CDK4_pic50_eff'] = df.apply(
         lambda row: row['CDK4_pic50'] if pd.notna(row['CDK4_pic50']) else row['CDK4_pic50_raw'], axis=1
     )
-    df['CDK6_pic50_eff'] = df.apply(
-        lambda row: row['CDK6_pic50'] if pd.notna(row['CDK6_pic50']) else row['CDK6_pic50_raw'], axis=1
     )
     df['CDK11_pic50_eff'] = df.apply(
         lambda row: row['CDK11_pic50'] if pd.notna(row['CDK11_pic50']) else row['CDK11_pic50_raw'], axis=1
@@ -821,15 +854,11 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     df['CDK4_ic50_nm_eff'] = df.apply(
         lambda row: row['CDK4_ic50_nm'] if pd.notna(row['CDK4_ic50_nm']) else row['CDK4_ic50_nm_raw'], axis=1
     )
-    df['CDK6_ic50_nm_eff'] = df.apply(
-        lambda row: row['CDK6_ic50_nm'] if pd.notna(row['CDK6_ic50_nm']) else row['CDK6_ic50_nm_raw'], axis=1
     )
     df['CDK11_ic50_nm_eff'] = df.apply(
         lambda row: row['CDK11_ic50_nm'] if pd.notna(row['CDK11_ic50_nm']) else row['CDK11_ic50_nm_raw'], axis=1
     )
 
-    df['on_target_pic50'] = df[['CDK4_pic50_eff', 'CDK6_pic50_eff']].mean(axis=1)
-    df['on_target_ic50_nm'] = df[['CDK4_ic50_nm_eff', 'CDK6_ic50_nm_eff']].mean(axis=1)
     df['cdk11_avoidance'] = np.maximum(0, df['on_target_pic50'] - df['CDK11_pic50_eff'])
     df['selectivity_ratio'] = df['on_target_pic50'] / (df['CDK11_pic50_eff'] + 1e-6)
     
@@ -840,10 +869,8 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
         for idx, row in df.iterrows():
             print_rt(f"Compound {idx + 1}:")
             cdk4 = format_affinity_result(row, "CDK4")
-            cdk6 = format_affinity_result(row, "CDK6")
             cdk11 = format_affinity_result(row, "CDK11")
             print_rt(f"  CDK4:  IC50 = {cdk4['ic50_str']} nM{cdk4['suffix']}, pIC50 = {cdk4['pic50_str']}, confidence = {cdk4['confidence_str']}")
-            print_rt(f"  CDK6:  IC50 = {cdk6['ic50_str']} nM{cdk6['suffix']}, pIC50 = {cdk6['pic50_str']}, confidence = {cdk6['confidence_str']}")
             print_rt(f"  CDK11: IC50 = {cdk11['ic50_str']} nM{cdk11['suffix']}, pIC50 = {cdk11['pic50_str']}, confidence = {cdk11['confidence_str']}")
             print_rt(f"  Selectivity: {row.get('selectivity_ratio', np.nan):.2f}, CDK11 avoidance: {row.get('cdk11_avoidance', np.nan):.2f}")
     
@@ -1014,7 +1041,6 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
                         <th>SMILES</th>
                         <th>Composite Score</th>
                         <th>CDK4 pIC50</th>
-                        <th>CDK6 pIC50</th>
                         <th>CDK11 pIC50</th>
                         <th>Selectivity Ratio</th>
                         <th>QED</th>
@@ -1032,7 +1058,6 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
         score_class = "score-high" if row['composite_score'] > 0.7 else "score-medium" if row['composite_score'] > 0.5 else "score-low"
         endpoint = row.get('CDK4_endpoint', 'Unknown')
         cdk4 = format_affinity_result(row, "CDK4")
-        cdk6 = format_affinity_result(row, "CDK6")
         cdk11 = format_affinity_result(row, "CDK11")
         
         html_content += f"""
@@ -1149,7 +1174,7 @@ async def main():
 
         if args.skip_boltz2:
             print_rt("Skipping Boltz2 predictions (using placeholder affinity values)")
-            for target in ["CDK4", "CDK6", "CDK11"]:
+            for target in ["CDK4", "CDK11"]:
                 df[f"{target}_ic50_nm"] = np.nan
                 df[f"{target}_pic50"] = np.nan
                 df[f"{target}_confidence"] = np.nan

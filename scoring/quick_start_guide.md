@@ -3,7 +3,7 @@
 ## Overview
 
 This folder contains a complete evaluation system for CDK inhibitor drug discovery submissions. The system evaluates compounds for:
-- High affinity to CDK4 and CDK6 (therapeutic targets)
+- High affinity to CDK4 (therapeutic target)
 - Minimal binding to CDK11 (avoid off-target effects)
 - Drug-like properties and synthetic accessibility
 - Safety and novelty
@@ -58,7 +58,7 @@ python evaluate_submission.py your_compounds.csv YourTeamName
 ## Understanding the Scores
 
 Each compound receives scores for:
-- **IC50 Predictions**: Lower values (higher pIC50) for CDK4/6, higher for CDK11
+- **IC50 Predictions**: Lower values (higher pIC50) for CDK4, higher for CDK11
 - **Selectivity Ratio**: CDK11_IC50 / OnTarget_IC50 (>10 is good)
 - **CDK11 Avoidance**: 1.0 = no binding, 0.0 = strong binding
 - **QED**: Drug-likeness (0-1, higher is better)

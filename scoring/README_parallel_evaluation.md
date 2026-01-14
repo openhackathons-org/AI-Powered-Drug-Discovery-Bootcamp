@@ -148,7 +148,7 @@ With `--verbose`, you'll see:
 [Worker 0] BOLTZ2 PREDICTION REQUEST - CDK4
 [Worker 0] Endpoint: http://localhost:8000
 [Worker 2] =====================================
-[Worker 2] BOLTZ2 PREDICTION REQUEST - CDK6
+[Worker 2] BOLTZ2 PREDICTION REQUEST - CDK11
 [Worker 2] Endpoint: http://localhost:8001
 Progress: 15/60 (25.0%) - Latest: CDK11 for compound 2
 ```

@@ -1,0 +1,625 @@
+"""
+Pipeline Module - End-to-end CDK inhibitor design workflow
+
+Orchestrates molecule generation, affinity prediction, scoring, and visualization.
+"""
+
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, field
+import time
+import json
+
+from .config import CDKConfig
+from .nim_client import NIMHealthChecker, MolMIMClient, Boltz2AffinityClient
+from .physicochemical import PhysicochemCalculator
+from .scoring import CDKScorer
+from .visualization import CDKVisualizer
+
+
+@dataclass
+class PipelineResults:
+    """Container for pipeline results."""
+    seed_smiles: List[str]
+    generated_smiles: List[str]
+    scores_df: pd.DataFrame
+    summary: Dict[str, Any]
+    history: List[Dict] = field(default_factory=list)
+    runtime_seconds: float = 0.0
+    
+    def get_top_compounds(self, n: int = 10) -> pd.DataFrame:
+        """Get top N compounds by score."""
+        return self.scores_df.nsmallest(n, "rank")
+    
+    def save(self, output_dir: str):
+        """Save results to disk."""
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save scores
+        self.scores_df.to_csv(output_dir / "all_scores.csv", index=False)
+        self.get_top_compounds(25).to_csv(output_dir / "top_compounds.csv", index=False)
+        
+        # Save summary
+        with open(output_dir / "summary.json", "w") as f:
+            json.dump(self.summary, f, indent=2, default=str)
+        
+        # Save generated SMILES
+        with open(output_dir / "generated_smiles.txt", "w") as f:
+            for smi in self.generated_smiles:
+                f.write(smi + "\n")
+        
+        print(f"Results saved to: {output_dir}")
+
+
+class CDKDesignPipeline:
+    """End-to-end pipeline for CDK inhibitor design.
+    
+    Combines:
+    - MolMIM for molecule generation
+    - Boltz2 for binding affinity prediction
+    - Physicochemical property calculation
+    - Composite scoring
+    - Visualization and reporting
+    
+    Usage:
+        pipeline = CDKDesignPipeline()
+        results = pipeline.run(seed_smiles=["CCO", "CCN"])
+        results.save("./output")
+    """
+    
+    def __init__(self, config: CDKConfig = None, boltz2_endpoints: List[Dict[str, str]] = None):
+        """Initialize the CDK design pipeline.
+        
+        Args:
+            config: CDK configuration (or created from env vars)
+            boltz2_endpoints: List of Boltz2 endpoint configs for parallel predictions
+                              e.g., [{"url": "http://gpu1:8000"}, {"url": "http://gpu2:8000"}]
+                              If None, uses config.boltz2_endpoints (from env vars)
+        """
+        self.config = config or CDKConfig()
+        
+        # Get Boltz2 endpoints from args, config, or default
+        endpoints = boltz2_endpoints or self.config.boltz2_endpoints
+        
+        # Initialize components
+        self.health_checker = NIMHealthChecker(self.config)
+        self.molmim = MolMIMClient(self.config)
+        self.boltz2 = Boltz2AffinityClient(self.config, endpoints=endpoints)
+        self.physchem = PhysicochemCalculator(self.config)
+        
+        # Log endpoint configuration
+        if len(endpoints) > 1:
+            print(f"⚡ Multi-endpoint mode: {len(endpoints)} Boltz2 endpoints configured")
+            for i, ep in enumerate(endpoints):
+                print(f"   Endpoint {i+1}: {ep.get('url')}")
+        self.scorer = CDKScorer(self.config)
+        self.visualizer = CDKVisualizer(self.config)
+        
+        # Optimization state
+        self._history = []
+    
+    def check_services(self) -> Dict[str, bool]:
+        """Check all NIM services are available.
+        
+        Returns:
+            Dict with service availability status
+        """
+        return self.health_checker.print_status()
+    
+    def generate_molecules(
+        self,
+        seed_smiles: List[str],
+        num_iterations: int = None,
+        popsize: int = None,
+        top_k_for_boltz2: int = None,
+        use_cma: bool = True,
+        use_msa: bool = True,
+        reference_smiles: List[str] = None,
+        verbose: bool = True
+    ) -> List[str]:
+        """Generate molecules using MolMIM with full CDK scoring in the loop.
+        
+        Each iteration:
+        1. Generate `popsize` candidates from CMA-ES
+        2. Fast filter: validity, QED, SA, PAINS, novelty
+        3. Select top `top_k_for_boltz2` for expensive Boltz2 predictions
+        4. Compute full CDK score (affinity + selectivity + drug-likeness)
+        5. Feed combined scores back to CMA-ES
+        
+        Args:
+            seed_smiles: Starting molecules
+            num_iterations: CMA-ES iterations (default: config.cma_iterations)
+            popsize: Population size (default: config.cma_popsize)
+            top_k_for_boltz2: Top K molecules to run Boltz2 on (default: popsize//2)
+            use_cma: Use CMA-ES optimization (if False, just sample)
+            use_msa: Use MSA for Boltz2 predictions
+            reference_smiles: Reference compounds for novelty scoring
+            verbose: Print progress
+            
+        Returns:
+            List of generated SMILES
+        """
+        num_iterations = num_iterations or self.config.cma_iterations
+        popsize = popsize or self.config.cma_popsize
+        top_k_for_boltz2 = top_k_for_boltz2 or max(1, popsize // 2)
+        
+        # Set reference for novelty scoring
+        if reference_smiles:
+            self.scorer.set_reference_compounds(reference_smiles)
+        else:
+            self.scorer.set_reference_compounds(seed_smiles)
+        
+        if verbose:
+            print(f"Generating molecules from {len(seed_smiles)} seeds...")
+            print(f"  Iterations: {num_iterations}")
+            print(f"  Population size: {popsize}")
+            print(f"  Top-K for Boltz2: {top_k_for_boltz2}")
+            print(f"  Using MSA: {use_msa}")
+        
+        if not use_cma:
+            # Simple sampling
+            all_generated = []
+            for seed in seed_smiles:
+                samples = self.molmim.sample(seed, num_samples=popsize * num_iterations)
+                all_generated.extend(samples)
+            return all_generated
+        
+        # CMA-ES optimization
+        try:
+            import cma
+        except ImportError:
+            print("CMA library not available, falling back to sampling")
+            return self.generate_molecules(seed_smiles, num_iterations, popsize, use_cma=False, verbose=verbose)
+        
+        # Encode seeds
+        encodings = self.molmim.encode(seed_smiles)
+        
+        all_generated = []
+        self._history = []
+        best_compounds_overall = []
+        
+        for seed_idx, seed in enumerate(seed_smiles):
+            if verbose:
+                print(f"\n{'='*60}")
+                print(f"Optimizing from seed {seed_idx + 1}/{len(seed_smiles)}")
+                print(f"  Seed: {seed[:60]}...")
+                print(f"{'='*60}")
+            
+            # Initialize CMA-ES
+            seed_encoding = encodings[0, seed_idx, :]
+            optimizer = cma.CMAEvolutionStrategy(
+                seed_encoding,
+                self.config.cma_sigma,
+                {'popsize': popsize}
+            )
+            
+            for iteration in range(num_iterations):
+                if verbose:
+                    print(f"\n  Iteration {iteration + 1}/{num_iterations}")
+                
+                # === Step 1: Generate candidates from CMA-ES ===
+                candidates = optimizer.ask(popsize)
+                candidates_array = np.array(candidates)
+                
+                # Decode to SMILES
+                if len(candidates_array.shape) == 1:
+                    candidates_array = candidates_array.reshape(1, -1)
+                
+                decoded = self.molmim.decode(np.expand_dims(candidates_array, 0))
+                
+                # === Step 2: Fast physicochemical filtering (all candidates) ===
+                fast_scores = []
+                candidate_data = []
+                
+                for i, smi in enumerate(decoded):
+                    props = self.physchem.calculate_properties(smi)
+                    
+                    if not props.valid:
+                        fast_scores.append(0.0)  # Invalid = worst score
+                        candidate_data.append(None)
+                        continue
+                    
+                    # Compute fast score components (0-1 each)
+                    qed_score = props.qed or 0.0
+                    sa_score = max(0.0, 1.0 - (props.sa_score - 1.0) / 9.0) if props.sa_score else 0.5
+                    pains_score = 1.0 if props.pains_alerts == 0 else 0.0
+                    lipinski_score = 1.0 if props.lipinski_violations <= 1 else 0.5
+                    
+                    # Novelty score using ChEMBL database (same as evaluate_submission.py)
+                    from .physicochemical import calculate_novelty_score_chembl
+                    novelty, max_sim, is_novel = calculate_novelty_score_chembl(
+                        smi, 
+                        cutoff=self.config.novelty_similarity_cutoff,
+                        additional_refs=self.scorer.reference_smiles + all_generated[-100:]
+                    )
+                    
+                    # Combined fast score (weighted)
+                    fast_score = (
+                        0.35 * qed_score +
+                        0.20 * sa_score +
+                        0.20 * pains_score +
+                        0.15 * lipinski_score +
+                        0.10 * novelty
+                    )
+                    
+                    fast_scores.append(fast_score)
+                    candidate_data.append({
+                        "smiles": smi,
+                        "idx": i,
+                        "props": props,
+                        "fast_score": fast_score,
+                        "qed": qed_score,
+                        "sa": sa_score,
+                        "novelty": novelty
+                    })
+                
+                valid_candidates = [c for c in candidate_data if c is not None]
+                valid_count = len(valid_candidates)
+                
+                if verbose:
+                    print(f"    Valid molecules: {valid_count}/{popsize}")
+                
+                if valid_count == 0:
+                    # All invalid - use zeros for CMA-ES
+                    optimizer.tell(candidates, [0.0] * popsize)
+                    self._history.append({
+                        "seed_idx": seed_idx, "iteration": iteration,
+                        "valid_count": 0, "best_score": 0.0, "mean_score": 0.0
+                    })
+                    continue
+                
+                # === Step 3: Select top-K for Boltz2 predictions ===
+                # Sort by fast score (descending)
+                valid_candidates.sort(key=lambda x: x["fast_score"], reverse=True)
+                top_k_candidates = valid_candidates[:top_k_for_boltz2]
+                
+                if verbose:
+                    print(f"    Running Boltz2 on top {len(top_k_candidates)} candidates...")
+                
+                # === Step 4: Boltz2 affinity predictions for top-K ===
+                boltz2_scores = {}
+                for cand in top_k_candidates:
+                    smi = cand["smiles"]
+                    
+                    # Predict CDK4 affinity
+                    cdk4_result = self.boltz2.predict_affinity(smi, self.config.on_target, use_msa=use_msa)
+                    cdk4_ic50 = cdk4_result.get("ic50_nm") if cdk4_result.get("success") else None
+                    
+                    # Predict CDK11 affinity
+                    cdk11_result = self.boltz2.predict_affinity(smi, self.config.anti_target, use_msa=use_msa)
+                    cdk11_ic50 = cdk11_result.get("ic50_nm") if cdk11_result.get("success") else None
+                    
+                    # Compute affinity score components
+                    if cdk4_ic50 and cdk4_ic50 > 0:
+                        # Lower IC50 = better binding = higher score
+                        binding_score = max(0.0, min(1.0, 1.0 - (np.log10(cdk4_ic50) - 0) / 4))
+                    else:
+                        binding_score = 0.3  # Unknown
+                    
+                    if cdk11_ic50 and cdk11_ic50 > 0:
+                        # Higher IC50 = better avoidance = higher score
+                        avoidance_score = max(0.0, min(1.0, (np.log10(cdk11_ic50) - 1) / 4))
+                    else:
+                        avoidance_score = 0.5  # Unknown
+                    
+                    # Selectivity score
+                    if cdk4_ic50 and cdk11_ic50 and cdk4_ic50 > 0:
+                        selectivity = cdk11_ic50 / cdk4_ic50
+                        if selectivity >= 100:
+                            selectivity_score = 1.0
+                        elif selectivity >= 10:
+                            selectivity_score = 0.7 + 0.3 * (selectivity - 10) / 90
+                        elif selectivity >= 1:
+                            selectivity_score = 0.3 + 0.4 * (selectivity - 1) / 9
+                        else:
+                            selectivity_score = 0.3 * selectivity
+                    else:
+                        selectivity_score = 0.5  # Unknown
+                    
+                    boltz2_scores[cand["idx"]] = {
+                        "cdk4_ic50": cdk4_ic50,
+                        "cdk11_ic50": cdk11_ic50,
+                        "binding_score": binding_score,
+                        "avoidance_score": avoidance_score,
+                        "selectivity_score": selectivity_score
+                    }
+                    
+                    if verbose:
+                        sel_str = f"{selectivity:.1f}x" if cdk4_ic50 and cdk11_ic50 else "N/A"
+                        cdk4_str = f"{cdk4_ic50:.1f}" if cdk4_ic50 else "N/A"
+                        print(f"      {smi[:40]}... CDK4={cdk4_str}nM, sel={sel_str}")
+                
+                # === Step 5: Compute final scores for CMA-ES ===
+                final_scores = []
+                for i, smi in enumerate(decoded):
+                    cand = candidate_data[i]
+                    
+                    if cand is None:
+                        # Invalid molecule
+                        final_scores.append(0.0)
+                        continue
+                    
+                    if i in boltz2_scores:
+                        # Has Boltz2 predictions - use full score
+                        b2 = boltz2_scores[i]
+                        weights = self.config.weights
+                        
+                        total_score = (
+                            weights["binding_affinity"] * b2["binding_score"] +
+                            weights["selectivity"] * b2["selectivity_score"] +
+                            weights["cdk11_avoidance"] * b2["avoidance_score"] +
+                            weights["qed"] * cand["qed"] +
+                            weights["sa"] * cand["sa"] +
+                            weights["pains"] * (1.0 if cand["props"].pains_alerts == 0 else 0.0) +
+                            weights["novelty"] * cand["novelty"]
+                        )
+                        
+                        # Store best compounds
+                        best_compounds_overall.append({
+                            "smiles": smi,
+                            "cdk4_ic50": b2["cdk4_ic50"],
+                            "cdk11_ic50": b2["cdk11_ic50"],
+                            "selectivity": b2["cdk11_ic50"] / b2["cdk4_ic50"] if b2["cdk4_ic50"] and b2["cdk11_ic50"] else None,
+                            "total_score": total_score,
+                            "qed": cand["qed"],
+                            "seed_idx": seed_idx,
+                            "iteration": iteration
+                        })
+                    else:
+                        # No Boltz2 - use fast score (penalized)
+                        total_score = cand["fast_score"] * 0.5  # Penalty for no affinity data
+                    
+                    final_scores.append(total_score)
+                
+                # CMA-ES minimizes, so negate scores
+                cma_scores = [-s for s in final_scores]
+                optimizer.tell(candidates, cma_scores)
+                
+                # Collect valid molecules
+                for cand in valid_candidates:
+                    all_generated.append(cand["smiles"])
+                
+                # Track history
+                best_score = max(final_scores)
+                mean_score = np.mean([s for s in final_scores if s > 0])
+                
+                self._history.append({
+                    "seed_idx": seed_idx,
+                    "iteration": iteration,
+                    "valid_count": valid_count,
+                    "best_score": best_score,
+                    "mean_score": mean_score,
+                    "boltz2_count": len(boltz2_scores),
+                })
+                
+                if verbose:
+                    print(f"    Best score: {best_score:.3f}, Mean: {mean_score:.3f}")
+        
+        # Deduplicate
+        all_generated = list(set(all_generated))
+        
+        # Store best compounds for later retrieval
+        self._best_compounds = sorted(best_compounds_overall, key=lambda x: x["total_score"], reverse=True)
+        
+        if verbose:
+            print(f"\n{'='*60}")
+            print(f"Generation complete!")
+            print(f"  Total unique molecules: {len(all_generated)}")
+            print(f"  Boltz2-scored compounds: {len(self._best_compounds)}")
+            if self._best_compounds:
+                best = self._best_compounds[0]
+                cdk4_best = f"{best['cdk4_ic50']:.1f}" if best.get('cdk4_ic50') else "N/A"
+                print(f"  Best compound: score={best['total_score']:.3f}, CDK4={cdk4_best}nM")
+            print(f"{'='*60}")
+        
+        return all_generated
+    
+    def get_best_compounds_from_generation(self, n: int = 25) -> pd.DataFrame:
+        """Get best compounds found during generation (with Boltz2 scores).
+        
+        These are compounds that were scored with Boltz2 during the optimization loop.
+        
+        Args:
+            n: Number of top compounds to return
+            
+        Returns:
+            DataFrame with top compounds
+        """
+        if not hasattr(self, '_best_compounds') or not self._best_compounds:
+            return pd.DataFrame()
+        
+        return pd.DataFrame(self._best_compounds[:n])
+    
+    def predict_affinities(
+        self,
+        smiles_list: List[str],
+        use_msa: bool = True,
+        verbose: bool = True
+    ) -> pd.DataFrame:
+        """Predict binding affinities using Boltz2.
+        
+        Args:
+            smiles_list: List of SMILES to predict
+            use_msa: Use MSA for better predictions
+            verbose: Print progress
+            
+        Returns:
+            DataFrame with affinity predictions
+        """
+        if verbose:
+            print(f"Predicting affinities for {len(smiles_list)} compounds...")
+            print(f"  Using MSA: {use_msa}")
+        
+        results = self.boltz2.predict_batch(
+            smiles_list,
+            proteins=[self.config.on_target, self.config.anti_target],
+            use_msa=use_msa,
+            verbose=verbose
+        )
+        
+        return pd.DataFrame(results)
+    
+    def score_compounds(
+        self,
+        affinity_df: pd.DataFrame,
+        reference_smiles: List[str] = None,
+        verbose: bool = True
+    ) -> pd.DataFrame:
+        """Score compounds using composite scoring.
+        
+        Args:
+            affinity_df: DataFrame with affinity predictions
+            reference_smiles: Reference compounds for novelty scoring
+            verbose: Print progress
+            
+        Returns:
+            DataFrame with all scores
+        """
+        if reference_smiles:
+            self.scorer.set_reference_compounds(reference_smiles)
+        
+        if verbose:
+            print(f"Scoring {len(affinity_df)} compounds...")
+        
+        return self.scorer.score_batch(affinity_df, verbose=verbose)
+    
+    def run(
+        self,
+        seed_smiles: List[str],
+        num_iterations: int = None,
+        popsize: int = None,
+        top_k_for_boltz2: int = None,
+        use_cma: bool = True,
+        use_msa: bool = True,
+        reference_smiles: List[str] = None,
+        skip_generation: bool = False,
+        smiles_to_evaluate: List[str] = None,
+        verbose: bool = True,
+        generate_report: bool = True
+    ) -> PipelineResults:
+        """Run the complete design pipeline.
+        
+        Args:
+            seed_smiles: Starting molecules for generation
+            num_iterations: CMA-ES iterations
+            popsize: Population size per seed
+            top_k_for_boltz2: Top K compounds per iteration to run Boltz2 on
+            use_cma: Use CMA-ES optimization
+            use_msa: Use MSA for Boltz2 predictions
+            reference_smiles: Reference compounds for novelty
+            skip_generation: Skip generation, use provided smiles_to_evaluate
+            smiles_to_evaluate: Direct SMILES list if skip_generation=True
+            verbose: Print progress
+            generate_report: Generate HTML report
+            
+        Returns:
+            PipelineResults with all results
+        """
+        start_time = time.time()
+        
+        if verbose:
+            print("=" * 60)
+            print("CDK Inhibitor Design Pipeline")
+            print("=" * 60)
+            print(f"On-target: {self.config.on_target}")
+            print(f"Anti-target: {self.config.anti_target}")
+            print("=" * 60)
+        
+        # Step 1: Generate molecules with CDK-aware optimization loop
+        if skip_generation and smiles_to_evaluate:
+            generated = smiles_to_evaluate
+            if verbose:
+                print(f"\nUsing {len(generated)} provided compounds")
+        else:
+            generated = self.generate_molecules(
+                seed_smiles,
+                num_iterations=num_iterations,
+                popsize=popsize,
+                top_k_for_boltz2=top_k_for_boltz2,
+                use_cma=use_cma,
+                use_msa=use_msa,
+                reference_smiles=reference_smiles,
+                verbose=verbose
+            )
+        
+        if not generated:
+            raise ValueError("No molecules generated!")
+        
+        # Step 2: Predict affinities
+        affinity_df = self.predict_affinities(generated, use_msa=use_msa, verbose=verbose)
+        
+        # Step 3: Score compounds
+        scores_df = self.score_compounds(
+            affinity_df,
+            reference_smiles=reference_smiles or seed_smiles,
+            verbose=verbose
+        )
+        
+        # Step 4: Generate summary
+        summary = self.scorer.get_scoring_summary(scores_df)
+        summary["seeds"] = len(seed_smiles)
+        summary["generated"] = len(generated)
+        summary["runtime_seconds"] = time.time() - start_time
+        
+        if verbose:
+            print("\n" + "=" * 60)
+            print("Results Summary")
+            print("=" * 60)
+            print(f"Total compounds: {summary['total_compounds']}")
+            print(f"Best score: {summary['max_total_score']:.3f}")
+            print(f"Potent CDK4 (<100nM): {summary['potent_cdk4_count']}")
+            print(f"Selective (>10x): {summary['selective_count']}")
+            print(f"Runtime: {summary['runtime_seconds']:.1f}s")
+            print("=" * 60)
+        
+        # Create results
+        results = PipelineResults(
+            seed_smiles=seed_smiles,
+            generated_smiles=generated,
+            scores_df=scores_df,
+            summary=summary,
+            history=self._history,
+            runtime_seconds=time.time() - start_time
+        )
+        
+        # Step 5: Generate report
+        if generate_report:
+            self.visualizer.generate_report(
+                scores_df,
+                summary,
+                output_dir=self.config.output_dir
+            )
+        
+        return results
+    
+    def evaluate_existing(
+        self,
+        smiles_list: List[str],
+        compound_ids: List[str] = None,
+        use_msa: bool = True,
+        verbose: bool = True
+    ) -> PipelineResults:
+        """Evaluate existing compounds without generation.
+        
+        Convenience method for evaluating user-provided compounds.
+        
+        Args:
+            smiles_list: List of SMILES to evaluate
+            compound_ids: Optional compound identifiers
+            use_msa: Use MSA for predictions
+            verbose: Print progress
+            
+        Returns:
+            PipelineResults
+        """
+        return self.run(
+            seed_smiles=[],
+            skip_generation=True,
+            smiles_to_evaluate=smiles_list,
+            use_msa=use_msa,
+            verbose=verbose
+        )
+

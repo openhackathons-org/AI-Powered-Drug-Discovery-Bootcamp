@@ -1,10 +1,10 @@
 # OpenHackathon CDK Inhibitor Evaluation Script
 
-This script evaluates chemical compound submissions for CDK4/6 selectivity with minimal CDK11 binding. It processes SMILES files and generates comprehensive evaluation reports.
+This script evaluates chemical compound submissions for CDK4 selectivity with minimal CDK11 binding. It processes SMILES files and generates comprehensive evaluation reports.
 
 ## Features
 
-- **IC50 Prediction**: Predicts binding affinity for CDK4, CDK6, and CDK11
+- **IC50 Prediction**: Predicts binding affinity for CDK4 and CDK11
 - **Drug-likeness Assessment**: Calculates QED scores
 - **Synthetic Accessibility**: Evaluates ease of synthesis
 - **Toxicity Prediction**: Estimates safety profile
@@ -115,7 +115,7 @@ The script generates the following files in the output directory:
 
 The composite score uses weighted components:
 
-- **Binding Affinity (25%)**: On-target potency (CDK4/CDK6)
+- **Binding Affinity (25%)**: On-target potency (CDK4)
 - **CDK11 Avoidance (20%)**: Minimal off-target binding
 - **Selectivity (15%)**: IC50 ratio between CDK11 and on-targets
 - **Drug-likeness (15%)**: QED score

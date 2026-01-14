@@ -75,9 +75,6 @@ CDK_PROTEIN_INFO = {
     "CDK4": {
         "sequence": "MATSRYEPVAEIGVGAYGTVYKARDPHSGHFVALKSVRVPNGGGGGGGLPISTVREVALLRRLEAFEHPNVVRLMDVCATSRTDREIKVTLVFEHVDQDLRTYLDKAPPPGLPAETIKDLMRQFLRGLDFLHANCIVHRDLKPENILVTSGGTVKLADFGLARIYSYQMALTPVVVTLWYRAPEVLLQSTYATPVDMWSVGCIFAEMFRRKPLFCGNSEADQLGKIFDLIGLPPEDDWPRDVSLPRGAFPPRGPRPVQSVVPEMEESGAQLLLEMLTFNPHKRISAFRALQHSYLHKDEGNPE"
     },
-    "CDK6": {
-        "sequence": "MEKDGLCRADQQYECVAEIGEGAYGKVFKARDLKNGGRFVALKRVRVQTGEEGMPLSTIREVAVLRHLETFEHPNVVRLFDVCTVSRTDRETKLTLVFEHVDQDLTTYLDKVPEPGVPTETIKDMMFQLLRGLDFLHSHRVVHRDLKPQNILVTSSGQIKLADFGLARIYSFQMALTSVVVTLWYRAPEVLLQSSYATPVDLWSVGCIFAEMFRRKPLFRGSSDVDQLGKILDVIGLPGEEDWPRDVALPRQAFHSKSAQPIEKFVTDIDELGKDLLLKCLTFNPAKRISAYSALSHPYFQDLERCKENLDSHLPPSQNTSELNTA"
-    },
     "CDK11": {
         "sequence": "ALQGCRSVEEFQCLNRIEEGTYGVVYRAKDKKTDEIVALKRLKMEKEKEGFPITSLREINTILKAQHPNIVTVREIVVGSNMDKIYIVMNYVEHDLKSLMETMKQPFLPGEVKTLMIQLLRGVKHLHDNWILHRDLKTSNLLLSHAGILKVGDFGLAREYGSPLKAYTPVVVTLWYRAPELLLGAKEYSTAVDMWSVGCIFAEMFRRKPLFPGKSEIDQINKVFKDLGTPSEKIWPGYSELPAVKKMTFSEHPYNNLRKRFGALLSDQGFDLMNKFLTYFPGRRISAEDGLKHEYFRETPLPIDPSMFPKLVEKY"
     }
@@ -199,7 +196,7 @@ async def predict_binding_affinity_boltz2_real_only(smiles: str, protein_target:
         
         # Create prediction request with proper ID formats
         # Polymer ID must be single letter (A-Z) or 4 alphanumeric chars
-        protein_id = protein_target[0]  # Use first letter of target (C for CDK4/CDK6/CDK11)
+        protein_id = protein_target[0]  # Use first letter of target (C for CDK4/CDK11)
         ligand_id = f"L{hash(smiles) % 1000:03d}"  # L + 3-digit number = 4 chars
         
         protein = Polymer(id=protein_id, sequence=protein_sequence, molecule_type="protein")
@@ -310,7 +307,7 @@ async def calculate_all_binding_affinities_real_only(df: pd.DataFrame,
     tasks = []
     for idx, row in df.iterrows():
         smiles = row['smiles']
-        for target in ["CDK4", "CDK6", "CDK11"]:
+        for target in ["CDK4", "CDK11"]:
             tasks.append((idx, smiles, target))
     
     results = {}
@@ -368,7 +365,7 @@ async def calculate_all_binding_affinities_real_only(df: pd.DataFrame,
     
     # Apply results to dataframe
     for idx in results:
-        for target in ["CDK4", "CDK6", "CDK11"]:
+        for target in ["CDK4", "CDK11"]:
             if target in results[idx]:
                 result = results[idx][target]
                 df.loc[idx, f'{target}_ic50_nm'] = result['ic50_nm']
@@ -387,10 +384,10 @@ async def calculate_all_binding_affinities_real_only(df: pd.DataFrame,
                 df.loc[idx, f'{target}_real_prediction'] = False
     
     # Calculate selectivity metrics (only for rows with complete data)
-    valid_rows = df.dropna(subset=['CDK4_pic50', 'CDK6_pic50', 'CDK11_pic50'])
+    valid_rows = df.dropna(subset=['CDK4_pic50', 'CDK11_pic50'])
     
     for idx in valid_rows.index:
-        df.loc[idx, 'on_target_pic50'] = df.loc[idx, ['CDK4_pic50', 'CDK6_pic50']].mean()
+        df.loc[idx, 'on_target_pic50'] = df.loc[idx, 'CDK4_pic50']
         df.loc[idx, 'cdk11_avoidance'] = max(0, df.loc[idx, 'on_target_pic50'] - df.loc[idx, 'CDK11_pic50'])
         df.loc[idx, 'selectivity_ratio'] = df.loc[idx, 'on_target_pic50'] / (df.loc[idx, 'CDK11_pic50'] + 1e-6)
     
@@ -402,7 +399,6 @@ async def calculate_all_binding_affinities_real_only(df: pd.DataFrame,
         for idx in valid_rows.index:
             print_rt(f"Compound {idx + 1} (REAL DATA):")
             print_rt(f"  CDK4:  IC50 = {df.loc[idx, 'CDK4_ic50_nm']:.1f} nM, pIC50 = {df.loc[idx, 'CDK4_pic50']:.2f}")
-            print_rt(f"  CDK6:  IC50 = {df.loc[idx, 'CDK6_ic50_nm']:.1f} nM, pIC50 = {df.loc[idx, 'CDK6_pic50']:.2f}")
             print_rt(f"  CDK11: IC50 = {df.loc[idx, 'CDK11_ic50_nm']:.1f} nM, pIC50 = {df.loc[idx, 'CDK11_pic50']:.2f}")
             print_rt(f"  Selectivity: {df.loc[idx, 'selectivity_ratio']:.2f}")
     
@@ -583,7 +579,6 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
                         <th>SMILES</th>
                         <th>Score</th>
                         <th>CDK4 pIC50</th>
-                        <th>CDK6 pIC50</th>
                         <th>CDK11 pIC50</th>
                         <th>Selectivity</th>
                         <th>QED</th>
@@ -604,7 +599,6 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
                         <td style="font-family: monospace; text-align: left;">{row['smiles'][:50]}{'...' if len(row['smiles']) > 50 else ''}</td>
                         <td>{row['composite_score']:.3f}</td>
                         <td>{row.get('CDK4_pic50', 'N/A') if pd.notna(row.get('CDK4_pic50')) else 'N/A'}</td>
-                        <td>{row.get('CDK6_pic50', 'N/A') if pd.notna(row.get('CDK6_pic50')) else 'N/A'}</td>
                         <td>{row.get('CDK11_pic50', 'N/A') if pd.notna(row.get('CDK11_pic50')) else 'N/A'}</td>
                         <td>{row.get('selectivity_ratio', 'N/A') if pd.notna(row.get('selectivity_ratio')) else 'N/A'}</td>
                         <td>{row.get('qed', 0):.3f}</td>
