@@ -458,11 +458,15 @@ class Boltz2AffinityClient:
         except ImportError:
             pass
         
+        import time
+        start_time = time.time()
+        
         async def run_parallel():
             semaphore = asyncio.Semaphore(max_concurrent)
             
             async def predict_one(idx: int, smiles: str) -> Dict[str, Any]:
                 async with semaphore:
+                    task_start = time.time()
                     result = {"smiles": smiles, "_idx": idx}
                     
                     for protein in proteins:
@@ -472,8 +476,10 @@ class Boltz2AffinityClient:
                         result[f"{protein}_confidence"] = pred.get("confidence")
                         result[f"{protein}_success"] = pred.get("success", False)
                     
+                    task_time = time.time() - task_start
                     if verbose:
-                        print(f"  [{idx+1}/{len(smiles_list)}] {smiles[:30]}... done")
+                        elapsed = time.time() - start_time
+                        print(f"  [{idx+1}/{len(smiles_list)}] {smiles[:30]}... done ({task_time:.1f}s, @{elapsed:.1f}s)")
                     
                     return result
             
@@ -481,6 +487,7 @@ class Boltz2AffinityClient:
                 print(f"Running parallel predictions with {len(self.endpoints)} endpoint(s)")
                 print(f"  Max concurrent: {max_concurrent}")
                 print(f"  Total compounds: {len(smiles_list)}")
+                print(f"  (timing: task_time, @elapsed_total)")
             
             # Create all tasks
             tasks = [
@@ -495,6 +502,8 @@ class Boltz2AffinityClient:
         loop = asyncio.get_event_loop()
         results = loop.run_until_complete(run_parallel())
         
+        total_time = time.time() - start_time
+        
         # Handle exceptions and sort by original index
         processed = []
         for r in results:
@@ -507,6 +516,15 @@ class Boltz2AffinityClient:
         processed.sort(key=lambda x: x.get("_idx", 0))
         for r in processed:
             r.pop("_idx", None)
+        
+        if verbose and len(smiles_list) > 0:
+            avg_per_compound = total_time / len(smiles_list)
+            sequential_estimate = avg_per_compound * len(smiles_list) * max_concurrent
+            speedup = sequential_estimate / total_time if total_time > 0 else 1
+            print(f"\n  ⚡ Parallel execution complete:")
+            print(f"     Total time: {total_time:.1f}s for {len(smiles_list)} compounds")
+            print(f"     Avg per compound: {avg_per_compound:.1f}s")
+            print(f"     Estimated speedup: ~{speedup:.1f}x vs sequential")
         
         return processed
     

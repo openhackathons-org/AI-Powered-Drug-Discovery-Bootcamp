@@ -319,35 +319,43 @@ class CDKDesignPipeline:
                 top_k_candidates = valid_candidates[:top_k_for_boltz2]
                 
                 if verbose:
-                    print(f"    Running Boltz2 on top {len(top_k_candidates)} candidates...")
+                    print(f"    Running Boltz2 on top {len(top_k_candidates)} candidates (parallel)...")
                 
-                # === Step 4: Boltz2 affinity predictions for top-K ===
+                # === Step 4: Boltz2 affinity predictions for top-K (PARALLEL) ===
+                top_k_smiles = [cand["smiles"] for cand in top_k_candidates]
+                top_k_idx = [cand["idx"] for cand in top_k_candidates]
+                
+                # Use parallel batch prediction
+                batch_results = self.boltz2.predict_batch(
+                    top_k_smiles,
+                    proteins=[self.config.on_target, self.config.anti_target],
+                    use_msa=use_msa,
+                    verbose=False,  # Suppress per-compound output during iteration
+                    parallel=True
+                )
+                
+                # Process results and compute scores
                 boltz2_scores = {}
-                for cand in top_k_candidates:
+                for result, cand in zip(batch_results, top_k_candidates):
+                    idx = cand["idx"]
                     smi = cand["smiles"]
                     
-                    # Predict CDK4 affinity
-                    cdk4_result = self.boltz2.predict_affinity(smi, self.config.on_target, use_msa=use_msa)
-                    cdk4_ic50 = cdk4_result.get("ic50_nm") if cdk4_result.get("success") else None
-                    
-                    # Predict CDK11 affinity
-                    cdk11_result = self.boltz2.predict_affinity(smi, self.config.anti_target, use_msa=use_msa)
-                    cdk11_ic50 = cdk11_result.get("ic50_nm") if cdk11_result.get("success") else None
+                    cdk4_ic50 = result.get(f"{self.config.on_target}_IC50_pred")
+                    cdk11_ic50 = result.get(f"{self.config.anti_target}_IC50_pred")
                     
                     # Compute affinity score components
                     if cdk4_ic50 and cdk4_ic50 > 0:
-                        # Lower IC50 = better binding = higher score
                         binding_score = max(0.0, min(1.0, 1.0 - (np.log10(cdk4_ic50) - 0) / 4))
                     else:
-                        binding_score = 0.3  # Unknown
+                        binding_score = 0.3
                     
                     if cdk11_ic50 and cdk11_ic50 > 0:
-                        # Higher IC50 = better avoidance = higher score
                         avoidance_score = max(0.0, min(1.0, (np.log10(cdk11_ic50) - 1) / 4))
                     else:
-                        avoidance_score = 0.5  # Unknown
+                        avoidance_score = 0.5
                     
                     # Selectivity score
+                    selectivity = None
                     if cdk4_ic50 and cdk11_ic50 and cdk4_ic50 > 0:
                         selectivity = cdk11_ic50 / cdk4_ic50
                         if selectivity >= 100:
@@ -359,9 +367,9 @@ class CDKDesignPipeline:
                         else:
                             selectivity_score = 0.3 * selectivity
                     else:
-                        selectivity_score = 0.5  # Unknown
+                        selectivity_score = 0.5
                     
-                    boltz2_scores[cand["idx"]] = {
+                    boltz2_scores[idx] = {
                         "cdk4_ic50": cdk4_ic50,
                         "cdk11_ic50": cdk11_ic50,
                         "binding_score": binding_score,
@@ -370,7 +378,7 @@ class CDKDesignPipeline:
                     }
                     
                     if verbose:
-                        sel_str = f"{selectivity:.1f}x" if cdk4_ic50 and cdk11_ic50 else "N/A"
+                        sel_str = f"{selectivity:.1f}x" if selectivity else "N/A"
                         cdk4_str = f"{cdk4_ic50:.1f}" if cdk4_ic50 else "N/A"
                         print(f"      {smi[:40]}... CDK4={cdk4_str}nM, sel={sel_str}")
                 
