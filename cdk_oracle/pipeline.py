@@ -516,46 +516,27 @@ class CDKDesignPipeline:
                         f"{anti_target}_success": True,
                     }
         
-        # Identify which molecules need new predictions
+        # Identify cached vs uncached molecules
         cached_smiles = set(affinity_cache.keys())
-        need_prediction = [smi for smi in smiles_list if smi not in cached_smiles]
+        cached_in_list = [smi for smi in smiles_list if smi in cached_smiles]
+        uncached = [smi for smi in smiles_list if smi not in cached_smiles]
         
         if verbose:
             print(f"\nAffinity predictions:")
             print(f"  Total molecules: {len(smiles_list)}")
-            print(f"  Cached from optimization: {len(cached_smiles & set(smiles_list))}")
-            print(f"  Need new predictions: {len(need_prediction)}")
+            print(f"  Cached from optimization: {len(cached_in_list)}")
+            print(f"  Skipping uncached: {len(uncached)} (no Boltz-2 scores)")
         
-        # Get new predictions if needed
-        new_results = []
-        if need_prediction:
-            if verbose:
-                print(f"\nPredicting affinities for {len(need_prediction)} uncached compounds...")
-            new_results = self.boltz2.predict_batch(
-                need_prediction,
-                proteins=[on_target, anti_target],
-                use_msa=use_msa,
-                verbose=verbose
-            )
-        
-        # Combine cached + new results, preserving original order
+        # Only return cached results - skip uncached compounds entirely
+        # This saves expensive Boltz-2 calls for molecules that didn't make top-K
         all_results = []
-        new_results_dict = {r["smiles"]: r for r in new_results}
-        
         for smi in smiles_list:
             if smi in affinity_cache:
                 all_results.append(affinity_cache[smi])
-            elif smi in new_results_dict:
-                all_results.append(new_results_dict[smi])
-            else:
-                # Fallback: molecule with no prediction
-                all_results.append({
-                    "smiles": smi,
-                    f"{on_target}_IC50_pred": None,
-                    f"{anti_target}_IC50_pred": None,
-                    f"{on_target}_success": False,
-                    f"{anti_target}_success": False,
-                })
+            # Skip uncached molecules - they won't be in final results
+        
+        if verbose and uncached:
+            print(f"  → Using only {len(all_results)} Boltz2-scored compounds for final ranking")
         
         return pd.DataFrame(all_results)
     
