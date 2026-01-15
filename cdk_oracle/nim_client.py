@@ -353,8 +353,7 @@ class Boltz2AffinityClient:
                 
                 # Extract structure data if requested
                 if return_structures:
-                    # Enable verbose on first call to debug structure extraction
-                    structures = self._extract_structures(response, verbose=True)
+                    structures = self._extract_structures(response, verbose=False)
                     result["structures"] = structures
                     result["_has_structures"] = len(structures) > 0
                 
