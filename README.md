@@ -39,7 +39,7 @@ By the end of this workshop, participants will:
 
 ## Getting Started
 
-1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md) or the detailed container setup in [`tutorials/container_setup.ipynb`](tutorials/container_setup.ipynb)
+1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md) or the detailed container setup in [`tutorials/00_Container_Setup.ipynb`](tutorials/00_Container_Setup.ipynb)
 3. **Complete Tutorials**: Work through the set of introductory notebooks in the [`tutorials/`](tutorials/) folder
 4. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
 
@@ -56,7 +56,7 @@ pip install -r deployment_requirements.txt
 cat deployment.md
 
 # Start with the overview Start_Here.ipynb notebook
-jupyter notebook Start_Here.ipynb
+jupyter-lab Start_Here.ipynb
 ```
 
 ## The Challenge
