@@ -127,6 +127,9 @@ class CDKDesignPipeline:
     ) -> int:
         """Save Boltz2 predicted structures to output folder.
         
+        Naming convention: {run_name}_seed_{seed}_iter_{iter}_design_{idx}_{target}.cif
+        Example: run_20260115_095027_seed_0_iter_2_design_1_cdk4.cif
+        
         Args:
             structures_data: List of dicts with smiles and structure data
             seed_idx: Seed molecule index
@@ -139,26 +142,27 @@ class CDKDesignPipeline:
         if not structures_data:
             return 0
         
-        # Create iteration subfolder
-        structures_dir = self.config.output_dir / "boltz2_structures" / f"seed{seed_idx}_iter{iteration}"
+        # Create structures subfolder
+        structures_dir = self.config.output_dir / "boltz2_structures"
         structures_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get run name from output_dir (e.g., "run_20260115_095027")
+        run_name = self.config.output_dir.name
         
         saved_count = 0
         
-        for data in structures_data:
-            smiles = data.get("smiles", "unknown")
-            compound_slug = self._sanitize_filename(smiles[:30])
-            
+        for compound_idx, data in enumerate(structures_data):
             # Save structures for each protein target
             for protein in [self.config.on_target, self.config.anti_target]:
                 structures = data.get(f"{protein}_structures", [])
                 
                 for struct in structures:
                     mmcif_data = struct.get("mmcif")
-                    struct_idx = struct.get("idx", 0)
                     
                     if mmcif_data:
-                        filename = f"{compound_slug}_{protein}_struct{struct_idx}.cif"
+                        # Format: run_20260115_095027_seed_0_iter_2_design_1_cdk4.cif
+                        target_lower = protein.lower()
+                        filename = f"{run_name}_seed_{seed_idx}_iter_{iteration}_design_{compound_idx}_{target_lower}.cif"
                         filepath = structures_dir / filename
                         
                         with open(filepath, "w") as f:
@@ -410,18 +414,7 @@ class CDKDesignPipeline:
                 
                 # Save structures if enabled
                 if save_structures and batch_results:
-                    # Check what keys are in the results
-                    if verbose and batch_results:
-                        sample_keys = list(batch_results[0].keys())
-                        cdk4_key = f"{self.config.on_target}_structures"
-                        cdk11_key = f"{self.config.anti_target}_structures"
-                        has_cdk4 = sum(1 for r in batch_results if r.get(cdk4_key))
-                        has_cdk11 = sum(1 for r in batch_results if r.get(cdk11_key))
-                        print(f"    Result keys: {sample_keys}")
-                        print(f"    Structures: {has_cdk4} CDK4, {has_cdk11} CDK11")
                     saved = self._save_structures(batch_results, seed_idx, iteration, verbose=verbose)
-                    if verbose:
-                        print(f"    Saved {saved} structure files")
                 
                 # Process results and compute scores
                 boltz2_scores = {}
