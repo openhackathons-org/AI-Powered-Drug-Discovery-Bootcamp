@@ -353,8 +353,10 @@ class Boltz2AffinityClient:
                 
                 # Extract structure data if requested
                 if return_structures:
-                    structures = self._extract_structures(response)
+                    # Enable verbose on first call to debug structure extraction
+                    structures = self._extract_structures(response, verbose=True)
                     result["structures"] = structures
+                    result["_has_structures"] = len(structures) > 0
                 
                 return result
             else:
@@ -363,38 +365,99 @@ class Boltz2AffinityClient:
         except Exception as e:
             return {"error": str(e), "endpoint": base_url, "success": False}
     
-    def _extract_structures(self, response: Any) -> List[Dict[str, str]]:
+    def _extract_structures(self, response: Any, verbose: bool = False) -> List[Dict[str, str]]:
         """Extract structure data (mmCIF) from Boltz2 response.
+        
+        Handles multiple formats:
+        - Direct mmCIF string in response
+        - File paths to CIF files
+        - Nested structure objects
         
         Args:
             response: Boltz2 prediction response
+            verbose: Print debug info
             
         Returns:
             List of dicts with structure data: [{"mmcif": str, "idx": int}, ...]
         """
+        from pathlib import Path
         structures = []
+        
+        # Debug: print response attributes
+        if verbose:
+            attrs = [attr for attr in dir(response) if not attr.startswith('_')]
+            print(f"    [DEBUG] Response attributes: {attrs}")
         
         raw_structures = getattr(response, "structures", None)
         if not raw_structures:
+            if verbose:
+                print(f"    [DEBUG] No 'structures' attribute in response")
             return structures
+        
+        if verbose:
+            print(f"    [DEBUG] Found {len(raw_structures)} raw structures")
         
         for idx, structure in enumerate(raw_structures):
             cif_data = None
+            structure_path = None
             
-            # Try various ways to get mmCIF data
+            # Debug: print structure type and attributes
+            if verbose and idx == 0:
+                print(f"    [DEBUG] Structure type: {type(structure)}")
+                if hasattr(structure, '__dict__'):
+                    print(f"    [DEBUG] Structure attrs: {list(structure.__dict__.keys())}")
+                elif hasattr(structure, 'model_dump'):
+                    print(f"    [DEBUG] Structure dict: {list(structure.model_dump().keys())}")
+            
+            # Try to get mmCIF data directly
             if hasattr(structure, "mmcif") and structure.mmcif:
                 cif_data = structure.mmcif
-            elif hasattr(structure, "model_dump"):
+            elif hasattr(structure, "mmCIF") and structure.mmCIF:
+                cif_data = structure.mmCIF
+            
+            # Try to get file path
+            if hasattr(structure, "path") and structure.path:
+                structure_path = structure.path
+            elif hasattr(structure, "file_path") and structure.file_path:
+                structure_path = structure.file_path
+            
+            # Try model_dump() for Pydantic models
+            if hasattr(structure, "model_dump"):
                 structure_dict = structure.model_dump()
-                cif_data = structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+                cif_data = cif_data or structure_dict.get("mmcif") or structure_dict.get("mmCIF") or structure_dict.get("cif")
+                structure_path = structure_path or structure_dict.get("path") or structure_dict.get("file_path")
             elif isinstance(structure, dict):
-                cif_data = structure.get("mmcif") or structure.get("mmCIF")
+                cif_data = cif_data or structure.get("mmcif") or structure.get("mmCIF") or structure.get("cif")
+                structure_path = structure_path or structure.get("path") or structure.get("file_path")
+            
+            # Also try direct string (some APIs return CIF as string directly)
+            if not cif_data and isinstance(structure, str):
+                if structure.startswith("data_"):
+                    cif_data = structure
+                elif Path(structure).exists():
+                    structure_path = structure
+            
+            # If we have a file path, read the content
+            if not cif_data and structure_path:
+                try:
+                    path_obj = Path(structure_path)
+                    if path_obj.exists():
+                        cif_data = path_obj.read_text()
+                        if verbose:
+                            print(f"    [DEBUG] Read structure from file: {structure_path}")
+                except Exception as e:
+                    if verbose:
+                        print(f"    [DEBUG] Failed to read structure file {structure_path}: {e}")
             
             if cif_data:
                 structures.append({
                     "mmcif": cif_data,
                     "idx": idx
                 })
+                if verbose:
+                    print(f"    [DEBUG] Extracted structure {idx} ({len(cif_data)} chars)")
+            elif verbose:
+                print(f"    [DEBUG] Structure {idx} has no mmCIF data (path={structure_path})")
         
         return structures
     

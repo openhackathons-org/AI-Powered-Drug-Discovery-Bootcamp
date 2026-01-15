@@ -410,6 +410,10 @@ class CDKDesignPipeline:
                 
                 # Save structures if enabled
                 if save_structures and batch_results:
+                    # Debug: check if structures were returned
+                    if verbose:
+                        has_struct_count = sum(1 for r in batch_results if r.get(f"{self.config.on_target}_structures") or r.get(f"{self.config.anti_target}_structures"))
+                        print(f"    Structures found in {has_struct_count}/{len(batch_results)} results")
                     self._save_structures(batch_results, seed_idx, iteration, verbose=verbose)
                 
                 # Process results and compute scores
