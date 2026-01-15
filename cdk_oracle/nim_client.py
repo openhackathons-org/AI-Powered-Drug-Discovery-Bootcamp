@@ -406,11 +406,17 @@ class Boltz2AffinityClient:
                 print(f"    [DEBUG] Structure type: {type(structure)}")
                 if hasattr(structure, '__dict__'):
                     print(f"    [DEBUG] Structure attrs: {list(structure.__dict__.keys())}")
-                elif hasattr(structure, 'model_dump'):
-                    print(f"    [DEBUG] Structure dict: {list(structure.model_dump().keys())}")
+                if hasattr(structure, 'model_dump'):
+                    sd = structure.model_dump()
+                    print(f"    [DEBUG] Structure dict keys: {list(sd.keys())}")
+                    # Show format and whether structure has content
+                    print(f"    [DEBUG] format={sd.get('format')}, structure_len={len(sd.get('structure', '') or '')}")
             
             # Try to get mmCIF data directly
-            if hasattr(structure, "mmcif") and structure.mmcif:
+            # boltz2_client.models.StructureData has: format, structure, name, source
+            if hasattr(structure, "structure") and structure.structure:
+                cif_data = structure.structure  # This is where boltz2_client stores CIF data
+            elif hasattr(structure, "mmcif") and structure.mmcif:
                 cif_data = structure.mmcif
             elif hasattr(structure, "mmCIF") and structure.mmCIF:
                 cif_data = structure.mmCIF
@@ -420,15 +426,18 @@ class Boltz2AffinityClient:
                 structure_path = structure.path
             elif hasattr(structure, "file_path") and structure.file_path:
                 structure_path = structure.file_path
+            elif hasattr(structure, "source") and structure.source:
+                # boltz2_client might use 'source' as file path
+                structure_path = structure.source
             
             # Try model_dump() for Pydantic models
             if hasattr(structure, "model_dump"):
                 structure_dict = structure.model_dump()
-                cif_data = cif_data or structure_dict.get("mmcif") or structure_dict.get("mmCIF") or structure_dict.get("cif")
-                structure_path = structure_path or structure_dict.get("path") or structure_dict.get("file_path")
+                cif_data = cif_data or structure_dict.get("structure") or structure_dict.get("mmcif") or structure_dict.get("mmCIF") or structure_dict.get("cif")
+                structure_path = structure_path or structure_dict.get("path") or structure_dict.get("file_path") or structure_dict.get("source")
             elif isinstance(structure, dict):
-                cif_data = cif_data or structure.get("mmcif") or structure.get("mmCIF") or structure.get("cif")
-                structure_path = structure_path or structure.get("path") or structure.get("file_path")
+                cif_data = cif_data or structure.get("structure") or structure.get("mmcif") or structure.get("mmCIF") or structure.get("cif")
+                structure_path = structure_path or structure.get("path") or structure.get("file_path") or structure.get("source")
             
             # Also try direct string (some APIs return CIF as string directly)
             if not cif_data and isinstance(structure, str):
