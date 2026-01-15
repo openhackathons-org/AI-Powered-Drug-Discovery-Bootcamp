@@ -285,6 +285,13 @@ class CDKDesignPipeline:
         # Encode seeds
         encodings = self.molmim.encode(seed_smiles)
         
+        # Handle different array dimensions (single vs multiple seeds)
+        # encodings shape: (1, n_seeds, latent_dims) for multiple seeds
+        #                  (1, latent_dims) for single seed after squeeze
+        if len(encodings.shape) == 2:
+            # Single seed case - reshape to (1, 1, latent_dims)
+            encodings = np.expand_dims(encodings, 1)
+        
         all_generated = []
         self._history = []
         best_compounds_overall = []
