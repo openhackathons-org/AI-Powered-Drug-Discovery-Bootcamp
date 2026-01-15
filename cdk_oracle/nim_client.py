@@ -267,7 +267,8 @@ class Boltz2AffinityClient:
         smiles: str,
         protein: str,
         use_msa: bool = True,
-        endpoint: Dict[str, str] = None
+        endpoint: Dict[str, str] = None,
+        return_structures: bool = False
     ) -> Dict[str, Any]:
         """Predict binding affinity asynchronously.
         
@@ -276,9 +277,10 @@ class Boltz2AffinityClient:
             protein: Target protein name ("CDK4" or "CDK11")
             use_msa: Whether to use MSA for better predictions
             endpoint: Specific endpoint to use (optional, uses load balancing if None)
+            return_structures: Whether to include structure data (mmCIF) in response
             
         Returns:
-            Dict with ic50_nm, pic50, confidence, success
+            Dict with ic50_nm, pic50, confidence, success, and optionally structures
         """
         if not self._boltz2_available:
             return {"error": "Boltz2 client not available", "success": False}
@@ -341,24 +343,67 @@ class Boltz2AffinityClient:
                 conf_list = getattr(affinity, "affinity_probability_binary", None)
                 confidence = conf_list[0] if conf_list else None
                 
-                return {
+                result = {
                     "ic50_nm": ic50_nm,
                     "pic50": pic50,
                     "confidence": confidence,
                     "endpoint": base_url,
                     "success": True
                 }
+                
+                # Extract structure data if requested
+                if return_structures:
+                    structures = self._extract_structures(response)
+                    result["structures"] = structures
+                
+                return result
             else:
                 return {"error": "No affinity data in response", "success": False}
                 
         except Exception as e:
             return {"error": str(e), "endpoint": base_url, "success": False}
     
+    def _extract_structures(self, response: Any) -> List[Dict[str, str]]:
+        """Extract structure data (mmCIF) from Boltz2 response.
+        
+        Args:
+            response: Boltz2 prediction response
+            
+        Returns:
+            List of dicts with structure data: [{"mmcif": str, "idx": int}, ...]
+        """
+        structures = []
+        
+        raw_structures = getattr(response, "structures", None)
+        if not raw_structures:
+            return structures
+        
+        for idx, structure in enumerate(raw_structures):
+            cif_data = None
+            
+            # Try various ways to get mmCIF data
+            if hasattr(structure, "mmcif") and structure.mmcif:
+                cif_data = structure.mmcif
+            elif hasattr(structure, "model_dump"):
+                structure_dict = structure.model_dump()
+                cif_data = structure_dict.get("mmcif") or structure_dict.get("mmCIF")
+            elif isinstance(structure, dict):
+                cif_data = structure.get("mmcif") or structure.get("mmCIF")
+            
+            if cif_data:
+                structures.append({
+                    "mmcif": cif_data,
+                    "idx": idx
+                })
+        
+        return structures
+    
     def predict_affinity(
         self,
         smiles: str,
         protein: str,
-        use_msa: bool = True
+        use_msa: bool = True,
+        return_structures: bool = False
     ) -> Dict[str, Any]:
         """Synchronous wrapper for predict_affinity_async."""
         try:
@@ -369,7 +414,7 @@ class Boltz2AffinityClient:
         
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(
-            self.predict_affinity_async(smiles, protein, use_msa)
+            self.predict_affinity_async(smiles, protein, use_msa, return_structures=return_structures)
         )
     
     def predict_batch(
@@ -379,7 +424,8 @@ class Boltz2AffinityClient:
         use_msa: bool = True,
         verbose: bool = True,
         parallel: bool = True,
-        max_concurrent: int = None
+        max_concurrent: int = None,
+        return_structures: bool = False
     ) -> List[Dict[str, Any]]:
         """Predict affinities for multiple compounds.
         
@@ -392,6 +438,7 @@ class Boltz2AffinityClient:
             verbose: Print progress
             parallel: Enable parallel predictions (uses multiple endpoints)
             max_concurrent: Max concurrent requests (default: num_endpoints * 2)
+            return_structures: Whether to include structure data (mmCIF) in results
             
         Returns:
             List of result dictionaries
@@ -402,7 +449,7 @@ class Boltz2AffinityClient:
         # Use parallel if multiple endpoints available
         if parallel and len(self.endpoints) > 1:
             return self.predict_batch_parallel(
-                smiles_list, proteins, use_msa, verbose, max_concurrent
+                smiles_list, proteins, use_msa, verbose, max_concurrent, return_structures
             )
         
         # Sequential fallback
@@ -413,11 +460,13 @@ class Boltz2AffinityClient:
             
             result = {"smiles": smiles}
             for protein in proteins:
-                pred = self.predict_affinity(smiles, protein, use_msa)
+                pred = self.predict_affinity(smiles, protein, use_msa, return_structures)
                 result[f"{protein}_IC50_pred"] = pred.get("ic50_nm")
                 result[f"{protein}_pIC50_pred"] = pred.get("pic50")
                 result[f"{protein}_confidence"] = pred.get("confidence")
                 result[f"{protein}_success"] = pred.get("success", False)
+                if return_structures and pred.get("structures"):
+                    result[f"{protein}_structures"] = pred["structures"]
             
             results.append(result)
         
@@ -429,7 +478,8 @@ class Boltz2AffinityClient:
         proteins: List[str] = None,
         use_msa: bool = True,
         verbose: bool = True,
-        max_concurrent: int = None
+        max_concurrent: int = None,
+        return_structures: bool = False
     ) -> List[Dict[str, Any]]:
         """Predict affinities in parallel using multiple endpoints.
         
@@ -441,6 +491,7 @@ class Boltz2AffinityClient:
             use_msa: Whether to use MSA
             verbose: Print progress
             max_concurrent: Max concurrent requests
+            return_structures: Whether to include structure data (mmCIF) in results
             
         Returns:
             List of result dictionaries (preserves order)
@@ -470,11 +521,15 @@ class Boltz2AffinityClient:
                     result = {"smiles": smiles, "_idx": idx}
                     
                     for protein in proteins:
-                        pred = await self.predict_affinity_async(smiles, protein, use_msa)
+                        pred = await self.predict_affinity_async(
+                            smiles, protein, use_msa, return_structures=return_structures
+                        )
                         result[f"{protein}_IC50_pred"] = pred.get("ic50_nm")
                         result[f"{protein}_pIC50_pred"] = pred.get("pic50")
                         result[f"{protein}_confidence"] = pred.get("confidence")
                         result[f"{protein}_success"] = pred.get("success", False)
+                        if return_structures and pred.get("structures"):
+                            result[f"{protein}_structures"] = pred["structures"]
                     
                     task_time = time.time() - task_start
                     if verbose:

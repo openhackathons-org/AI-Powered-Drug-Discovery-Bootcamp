@@ -51,6 +51,9 @@ cdk_oracle/
 | **Thresholds** | | | |
 | `ic50_potent_threshold` | Line 113 | `100.0` nM | "Potent" IC50 cutoff |
 | `novelty_similarity_cutoff` | Line 127 | `0.85` | Tanimoto cutoff for novelty |
+| **Output Settings** | | | |
+| `save_boltz2_structures` | Line 133 | `True` | Save Boltz2 predicted complex structures (CIF) |
+| `top_n_compounds` | Line 130 | `25` | Number of top compounds to output |
 
 #### Default Scoring Weights
 
@@ -477,7 +480,33 @@ output/run_20260115_143052/
 ├── design_report.html          # HTML report with plots
 ├── affinity_scatter.png        # CDK4 vs CDK11 plot
 ├── score_distribution.png      # Score histograms
-└── top_compounds.png           # Top compounds bar chart
+├── top_compounds.png           # Top compounds bar chart
+└── boltz2_structures/          # Predicted complex structures (CIF files)
+    ├── seed0_iter0/            # Structures from seed 0, iteration 0
+    │   ├── compound1_CDK4_struct0.cif
+    │   ├── compound1_CDK11_struct0.cif
+    │   └── ...
+    ├── seed0_iter1/            # Structures from seed 0, iteration 1
+    └── ...
+```
+
+### Structure Files
+
+When `save_boltz2_structures=True` (default), the pipeline saves Boltz2-predicted 
+protein-ligand complex structures in mmCIF format:
+
+- **Organization:** Structures are organized by seed molecule and iteration
+- **Naming:** `{compound_smiles}_{protein}_{structure_idx}.cif`
+- **Usage:** Can be visualized in PyMOL, ChimeraX, or other molecular viewers
+
+To disable structure saving:
+```python
+results = pipeline.run(seed_smiles=[...], save_structures=False)
+```
+
+Or in config:
+```python
+config = CDKConfig(save_boltz2_structures=False)
 ```
 
 ---
