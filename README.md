@@ -11,13 +11,21 @@ This bootcamp combines comprehensive tutorials with a cutting-edge hackathon cha
 At the top level, you'll find detailed instructions for deploying the MolMIM NIM in [`deployment.md`](deployment.md) and all the required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once you have the basics in place, you can follow along with the Tutorials and Challenge.
 
 ### 📚 Tutorials
-The [`tutorials/`](tutorials/) folder contains everything you need to get started:
-- **Container Setup**: Step-by-step deployment guide (`container_setup.ipynb`)
-- **Lab 1**: Fundamental MolMIM operations (clustering, generation, interpolation)
-- **Lab 2**: Advanced techniques with custom oracles, optimization, and guided molecule generation
+The [`tutorials/`](tutorials/) folder contains everything you need to get started and background on the models and techniques used in the Challenge:
+- **00_Container_Setup.ipynb**: Step-by-step deployment guide for setting up MolMIM NIM with NGC API key configuration
+- **01_MolMIMGeneration.ipynb**: Fundamental MolMIM operations including unguided sampling and guided optimization using CMA-ES algorithm
+- **02_ClusterMolMIMEmbeddings.ipynb**: Clustering molecular embeddings to identify molecular families and functional relationships
+- **03_MolMIMInterpolation.ipynb**: Interpolating between molecules by manipulating hidden states to generate novel structures
+- **04_MolMIMOracleControlledGeneration.ipynb**: Advanced controlled generation using custom oracle scoring functions with CMA-ES optimization
+- **05_Suggested_Tools_for_Scoring_Oracles.ipynb**: Comprehensive guide to tools and resources for building custom scoring oracles
+- **06_Boltz2_Validation.ipynb**: Binding affinity prediction validation using Boltz-2 with MSA for CDK inhibitor assessment
 
 ### 🏆 Challenge
-The [`challenge/`](challenge/) folder contains the hackathon challenge where you'll apply your knowledge to solve real drug discovery problems.
+The [`challenge/`](challenge/) folder contains the hackathon challenge where you'll apply your knowledge to solve real drug discovery problems:
+- **01_Challenge_Overview.ipynb**: Complete hackathon challenge introduction with objectives, scoring methods, and evaluation criteria
+- **02_The_Challenge-Designing_CDK4_Inhibitors.ipynb**: Detailed challenge specification for designing selective CDK4 inhibitors while avoiding CDK11 binding
+- **03_Hands-On_CDK_Inhibitor_Design.ipynb**: End-to-end pipeline for CDK4 inhibitor design including generation, affinity prediction, and composite scoring
+
 
 ## Bootcamp Objectives
 
@@ -26,14 +34,14 @@ By the end of this workshop, participants will:
 * Understand NVIDIA BioNeMo architecture and key functionalities
 * Gain deep insights into MolMIM for generative small molecule design
 * Develop hands-on skills to apply BioNeMo workflows using real-world, complex datasets
-* Integrate advanced optimization methods (CMA-ES with custom oracles) to refine molecular designs
-* Optimize and scale workflows leveraging multi-GPU and HPC resources (optional)
+* Integrate advanced scoring and optimization methods to refine molecular designs
+
 
 ## Getting Started
 
 1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md) or the detailed container setup in [`tutorials/container_setup.ipynb`](tutorials/container_setup.ipynb)
-3. **Complete Tutorials**: Work through Lab 1 and Lab 2 in the [`tutorials/`](tutorials/) folder
-4. **Take the Challenge**: Apply your skills in the [`challenge/`](challenge/) folder
+3. **Complete Tutorials**: Work through the set of introductory notebooks in the [`tutorials/`](tutorials/) folder
+4. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
 
 ## Quick Start
 
@@ -47,8 +55,8 @@ pip install -r deployment_requirements.txt
 # Follow deployment guide for MolMIM NIM setup
 cat deployment.md
 
-# Start with container setup
-jupyter notebook tutorials/container_setup.ipynb
+# Start with the overview Start_Here.ipynb notebook
+jupyter notebook Start_Here.ipynb
 ```
 
 ## The Challenge
@@ -56,9 +64,8 @@ jupyter notebook tutorials/container_setup.ipynb
 The core of this bootcamp culminates in an exciting challenge: **Accelerating Drug Discovery with NVIDIA MolMIM**. You'll harness cutting-edge AI to revolutionize drug discovery by generating and optimizing novel molecular structures with potential as therapeutic agents.
 
 ### What You'll Do:
-- Design custom scoring oracles combining multiple molecular properties
 - Generate diverse molecular structures using MolMIM
-- Optimize molecules for drug-like characteristics using CMA-ES
+- Optimize molecules for drug-like characteristics using custom scoring oracles
 - Evaluate drug potential through property prediction and binding assessment
 
 ### Key Properties to Explore:
