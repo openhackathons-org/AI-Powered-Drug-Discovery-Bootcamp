@@ -109,6 +109,67 @@ class CDKDesignPipeline:
         """
         return self.health_checker.print_status()
     
+    def _sanitize_filename(self, text: str, max_length: int = 50) -> str:
+        """Sanitize text for use as filename."""
+        import re
+        # Remove or replace invalid characters
+        sanitized = re.sub(r'[<>:"/\\|?*]', '_', text)
+        sanitized = re.sub(r'\s+', '_', sanitized)
+        sanitized = re.sub(r'_+', '_', sanitized)
+        return sanitized[:max_length]
+    
+    def _save_structures(
+        self,
+        structures_data: List[Dict[str, Any]],
+        seed_idx: int,
+        iteration: int,
+        verbose: bool = True
+    ) -> int:
+        """Save Boltz2 predicted structures to output folder.
+        
+        Args:
+            structures_data: List of dicts with smiles and structure data
+            seed_idx: Seed molecule index
+            iteration: Iteration number
+            verbose: Print progress
+            
+        Returns:
+            Number of structures saved
+        """
+        if not structures_data:
+            return 0
+        
+        # Create iteration subfolder
+        structures_dir = self.config.output_dir / "boltz2_structures" / f"seed{seed_idx}_iter{iteration}"
+        structures_dir.mkdir(parents=True, exist_ok=True)
+        
+        saved_count = 0
+        
+        for data in structures_data:
+            smiles = data.get("smiles", "unknown")
+            compound_slug = self._sanitize_filename(smiles[:30])
+            
+            # Save structures for each protein target
+            for protein in [self.config.on_target, self.config.anti_target]:
+                structures = data.get(f"{protein}_structures", [])
+                
+                for struct in structures:
+                    mmcif_data = struct.get("mmcif")
+                    struct_idx = struct.get("idx", 0)
+                    
+                    if mmcif_data:
+                        filename = f"{compound_slug}_{protein}_struct{struct_idx}.cif"
+                        filepath = structures_dir / filename
+                        
+                        with open(filepath, "w") as f:
+                            f.write(mmcif_data)
+                        saved_count += 1
+        
+        if verbose and saved_count > 0:
+            print(f"    Saved {saved_count} structure files to {structures_dir}")
+        
+        return saved_count
+    
     def _calculate_diversity(self, smiles_list: List[str]) -> float:
         """Calculate molecular diversity as average pairwise Tanimoto distance.
         
@@ -160,7 +221,8 @@ class CDKDesignPipeline:
         use_cma: bool = True,
         use_msa: bool = True,
         reference_smiles: List[str] = None,
-        verbose: bool = True
+        verbose: bool = True,
+        save_structures: bool = None
     ) -> List[str]:
         """Generate molecules using MolMIM with full CDK scoring in the loop.
         
@@ -170,6 +232,7 @@ class CDKDesignPipeline:
         3. Select top `top_k_for_boltz2` for expensive Boltz2 predictions
         4. Compute full CDK score (affinity + selectivity + drug-likeness)
         5. Feed combined scores back to CMA-ES
+        6. Optionally save Boltz2 predicted complex structures
         
         Args:
             seed_smiles: Starting molecules
@@ -180,6 +243,7 @@ class CDKDesignPipeline:
             use_msa: Use MSA for Boltz2 predictions
             reference_smiles: Reference compounds for novelty scoring
             verbose: Print progress
+            save_structures: Save Boltz2 predicted structures (default: config.save_boltz2_structures)
             
         Returns:
             List of generated SMILES
@@ -187,6 +251,7 @@ class CDKDesignPipeline:
         num_iterations = num_iterations or self.config.cma_iterations
         popsize = popsize or self.config.cma_popsize
         top_k_for_boltz2 = top_k_for_boltz2 or max(1, popsize // 2)
+        save_structures = save_structures if save_structures is not None else self.config.save_boltz2_structures
         
         # Set reference for novelty scoring
         if reference_smiles:
@@ -200,6 +265,7 @@ class CDKDesignPipeline:
             print(f"  Population size: {popsize}")
             print(f"  Top-K for Boltz2: {top_k_for_boltz2}")
             print(f"  Using MSA: {use_msa}")
+            print(f"  Save structures: {save_structures}")
         
         if not use_cma:
             # Simple sampling
@@ -325,14 +391,19 @@ class CDKDesignPipeline:
                 top_k_smiles = [cand["smiles"] for cand in top_k_candidates]
                 top_k_idx = [cand["idx"] for cand in top_k_candidates]
                 
-                # Use parallel batch prediction
+                # Use parallel batch prediction (with structures if enabled)
                 batch_results = self.boltz2.predict_batch(
                     top_k_smiles,
                     proteins=[self.config.on_target, self.config.anti_target],
                     use_msa=use_msa,
                     verbose=False,  # Suppress per-compound output during iteration
-                    parallel=True
+                    parallel=True,
+                    return_structures=save_structures
                 )
+                
+                # Save structures if enabled
+                if save_structures and batch_results:
+                    self._save_structures(batch_results, seed_idx, iteration, verbose=verbose)
                 
                 # Process results and compute scores
                 boltz2_scores = {}
@@ -613,7 +684,8 @@ class CDKDesignPipeline:
         skip_generation: bool = False,
         smiles_to_evaluate: List[str] = None,
         verbose: bool = True,
-        generate_report: bool = True
+        generate_report: bool = True,
+        save_structures: bool = None
     ) -> PipelineResults:
         """Run the complete design pipeline.
         
@@ -629,6 +701,7 @@ class CDKDesignPipeline:
             smiles_to_evaluate: Direct SMILES list if skip_generation=True
             verbose: Print progress
             generate_report: Generate HTML report
+            save_structures: Save Boltz2 predicted structures (default: config.save_boltz2_structures)
             
         Returns:
             PipelineResults with all results
@@ -657,7 +730,8 @@ class CDKDesignPipeline:
                 use_cma=use_cma,
                 use_msa=use_msa,
                 reference_smiles=reference_smiles,
-                verbose=verbose
+                verbose=verbose,
+                save_structures=save_structures
             )
         
         if not generated:
@@ -737,6 +811,12 @@ class CDKDesignPipeline:
             print(f"  ✓ top_compounds.csv (top {len(top_df)})")
             print(f"  ✓ run_summary.json")
             print(f"  ✓ generated_smiles.txt")
+            
+            # Check if structures were saved
+            structures_dir = output_dir / "boltz2_structures"
+            if structures_dir.exists():
+                num_struct_files = sum(1 for _ in structures_dir.rglob("*.cif"))
+                print(f"  ✓ boltz2_structures/ ({num_struct_files} CIF files)")
         
         # Step 6: Generate HTML report
         if generate_report:

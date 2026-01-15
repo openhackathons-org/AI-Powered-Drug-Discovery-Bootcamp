@@ -130,6 +130,7 @@ class CDKConfig:
     top_n_compounds: int = 25
     save_all_generations: bool = False
     generate_plots: bool = True
+    save_boltz2_structures: bool = True  # Save predicted complex structures (CIF files)
     
     def __post_init__(self):
         """Ensure paths exist and create timestamped output directory."""
