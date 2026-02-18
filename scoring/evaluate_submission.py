@@ -41,6 +41,7 @@ from tqdm import tqdm
 import json
 import re
 import traceback
+from datetime import timezone
 
 # Try to import boltz2 client (optional)
 BOLTZ2_AVAILABLE = False
@@ -1056,21 +1057,21 @@ def calculate_composite_scores(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Path):
-    """Generate evaluation dashboard"""
-    print("Creating evaluation dashboard...")
+# def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Path):
+#     """Generate evaluation dashboard"""
+#     print("Creating evaluation dashboard...")
     
-    fig = plt.figure(figsize=(20, 24))
+#     fig = plt.figure(figsize=(20, 24))
     
-    # 1. Score distributions
-    ax1 = plt.subplot(4, 2, 1)
-    score_cols = ['qed_score', 'sa_score_normalized', 'pains_score', 'novelty_score']
-    valid_cols = [col for col in score_cols if col in df.columns]
-    if valid_cols:
-        df[valid_cols].boxplot(ax=ax1)
-        ax1.set_title('Score Distributions', fontsize=14)
-        ax1.set_ylabel('Score (0-1)')
-        plt.xticks(rotation=45)
+#     # 1. Score distributions
+#     ax1 = plt.subplot(4, 2, 1)
+#     score_cols = ['qed_score', 'sa_score_normalized', 'pains_score', 'novelty_score']
+#     valid_cols = [col for col in score_cols if col in df.columns]
+#     if valid_cols:
+#         df[valid_cols].boxplot(ax=ax1)
+#         ax1.set_title('Score Distributions', fontsize=14)
+#         ax1.set_ylabel('Score (0-1)')
+#         plt.xticks(rotation=45)
     
     # 2. IC50 comparison
     ax2 = plt.subplot(4, 2, 2)
@@ -1084,139 +1085,139 @@ def create_evaluation_dashboard(df: pd.DataFrame, team_name: str, output_dir: Pa
         ax2.set_xlabel('Target')
         plt.xticks(rotation=45)
     
-    # 3. Top compounds scatter
-    ax3 = plt.subplot(4, 2, 3)
-    top_25 = df.nsmallest(25, 'rank')
-    if 'qed_score' in df.columns and 'on_target_pic50' in df.columns:
-        valid = top_25[['qed_score', 'on_target_pic50', 'composite_score']].dropna()
-        if not valid.empty:
-            scatter = ax3.scatter(valid['qed_score'], valid['on_target_pic50'], 
-                                 c=valid['composite_score'], s=100, cmap='viridis')
-            ax3.set_xlabel('QED Score')
-            ax3.set_ylabel('On-target pIC50')
-            ax3.set_title('Top 25 Compounds: QED vs Potency', fontsize=14)
-            plt.colorbar(scatter, ax=ax3, label='Composite Score')
-        else:
-            ax3.set_visible(False)
+#     # 3. Top compounds scatter
+#     ax3 = plt.subplot(4, 2, 3)
+#     top_25 = df.nsmallest(25, 'rank')
+#     if 'qed_score' in df.columns and 'on_target_pic50' in df.columns:
+#         valid = top_25[['qed_score', 'on_target_pic50', 'composite_score']].dropna()
+#         if not valid.empty:
+#             scatter = ax3.scatter(valid['qed_score'], valid['on_target_pic50'], 
+#                                  c=valid['composite_score'], s=100, cmap='viridis')
+#             ax3.set_xlabel('QED Score')
+#             ax3.set_ylabel('On-target pIC50')
+#             ax3.set_title('Top 25 Compounds: QED vs Potency', fontsize=14)
+#             plt.colorbar(scatter, ax=ax3, label='Composite Score')
+#         else:
+#             ax3.set_visible(False)
     
-    # 4. Novelty distribution
-    ax4 = plt.subplot(4, 2, 4)
-    if 'max_chembl_similarity' in df.columns:
-        valid_novelty = df['max_chembl_similarity'].dropna()
-        if not valid_novelty.empty:
-            valid_novelty.hist(bins=30, ax=ax4, alpha=0.7)
-            novelty_cutoff = get_novelty_cutoff()
-            ax4.axvline(novelty_cutoff, color='red', linestyle='--', 
-                        label=f'Cutoff ({novelty_cutoff:.2f})')
-            ax4.set_xlabel('Max ChEMBL Similarity')
-            ax4.set_ylabel('Count')
-            ax4.set_title('Novelty Distribution', fontsize=14)
-            ax4.legend()
-        else:
-            ax4.set_visible(False)
+#     # 4. Novelty distribution
+#     ax4 = plt.subplot(4, 2, 4)
+#     if 'max_chembl_similarity' in df.columns:
+#         valid_novelty = df['max_chembl_similarity'].dropna()
+#         if not valid_novelty.empty:
+#             valid_novelty.hist(bins=30, ax=ax4, alpha=0.7)
+#             novelty_cutoff = get_novelty_cutoff()
+#             ax4.axvline(novelty_cutoff, color='red', linestyle='--', 
+#                         label=f'Cutoff ({novelty_cutoff:.2f})')
+#             ax4.set_xlabel('Max ChEMBL Similarity')
+#             ax4.set_ylabel('Count')
+#             ax4.set_title('Novelty Distribution', fontsize=14)
+#             ax4.legend()
+#         else:
+#             ax4.set_visible(False)
     
-    # 5. Composite score distribution
-    ax5 = plt.subplot(4, 2, 5)
-    if 'composite_score' in df.columns:
-        df['composite_score'].hist(bins=50, ax=ax5, alpha=0.7, color='purple')
-        ax5.axvline(df['composite_score'].quantile(0.975), color='green', linestyle='--', 
-                    label='Top 2.5%')
-        ax5.set_xlabel('Composite Score')
-        ax5.set_ylabel('Count')
-        ax5.set_title('Composite Score Distribution', fontsize=14)
-        ax5.legend()
+#     # 5. Composite score distribution
+#     ax5 = plt.subplot(4, 2, 5)
+#     if 'composite_score' in df.columns:
+#         df['composite_score'].hist(bins=50, ax=ax5, alpha=0.7, color='purple')
+#         ax5.axvline(df['composite_score'].quantile(0.975), color='green', linestyle='--', 
+#                     label='Top 2.5%')
+#         ax5.set_xlabel('Composite Score')
+#         ax5.set_ylabel('Count')
+#         ax5.set_title('Composite Score Distribution', fontsize=14)
+#         ax5.legend()
     
-    # 6. Selectivity vs CDK11 avoidance
-    ax6 = plt.subplot(4, 2, 6)
-    if 'selectivity_ratio' in df.columns and 'cdk11_avoidance' in df.columns:
-        ax6.scatter(df['selectivity_ratio'], df['cdk11_avoidance'], alpha=0.5)
-        ax6.set_xlabel('Selectivity Ratio')
-        ax6.set_ylabel('CDK11 Avoidance Score')
-        ax6.set_title('Selectivity vs CDK11 Avoidance', fontsize=14)
-        ax6.set_xlim(0, 100)
+#     # 6. Selectivity vs CDK11 avoidance
+#     ax6 = plt.subplot(4, 2, 6)
+#     if 'selectivity_ratio' in df.columns and 'cdk11_avoidance' in df.columns:
+#         ax6.scatter(df['selectivity_ratio'], df['cdk11_avoidance'], alpha=0.5)
+#         ax6.set_xlabel('Selectivity Ratio')
+#         ax6.set_ylabel('CDK11 Avoidance Score')
+#         ax6.set_title('Selectivity vs CDK11 Avoidance', fontsize=14)
+#         ax6.set_xlim(0, 100)
     
-    # 7. Drug properties
-    ax7 = plt.subplot(4, 2, 7)
-    if 'mol' in df.columns:
-        mw = [Descriptors.MolWt(mol) if mol else np.nan for mol in df['mol']]
-        logp = [Descriptors.MolLogP(mol) if mol else np.nan for mol in df['mol']]
-        valid_idx = ~(pd.isna(mw) | pd.isna(logp))
-        if valid_idx.sum() > 0:
-            ax7.scatter(np.array(mw)[valid_idx], np.array(logp)[valid_idx], alpha=0.5)
-            ax7.set_xlabel('Molecular Weight')
-            ax7.set_ylabel('LogP')
-            ax7.set_title('Drug-like Properties', fontsize=14)
-            ax7.axvline(500, color='red', linestyle='--', alpha=0.5)
-            ax7.axhline(5, color='red', linestyle='--', alpha=0.5)
+#     # 7. Drug properties
+#     ax7 = plt.subplot(4, 2, 7)
+#     if 'mol' in df.columns:
+#         mw = [Descriptors.MolWt(mol) if mol else np.nan for mol in df['mol']]
+#         logp = [Descriptors.MolLogP(mol) if mol else np.nan for mol in df['mol']]
+#         valid_idx = ~(pd.isna(mw) | pd.isna(logp))
+#         if valid_idx.sum() > 0:
+#             ax7.scatter(np.array(mw)[valid_idx], np.array(logp)[valid_idx], alpha=0.5)
+#             ax7.set_xlabel('Molecular Weight')
+#             ax7.set_ylabel('LogP')
+#             ax7.set_title('Drug-like Properties', fontsize=14)
+#             ax7.axvline(500, color='red', linestyle='--', alpha=0.5)
+#             ax7.axhline(5, color='red', linestyle='--', alpha=0.5)
     
-    # 8. Score breakdown for top compounds
-    ax8 = plt.subplot(4, 2, 8)
-    top_10 = df.nsmallest(10, 'rank')
-    if len(top_10) > 0:
-        score_components = []
-        for weight_key in CONFIG["weights"]:
-            col_map = {
-                'binding_affinity': 'on_target_pic50_norm',
-                'selectivity': 'selectivity_ratio_norm',
-                'cdk11_avoidance': 'cdk11_avoidance_norm',
-                'qed': 'qed_score_norm',
-                'sa': 'sa_score_normalized_norm',
-                'pains': 'pains_score_norm',
-                'novelty': 'novelty_score_norm'
-            }
-            if col_map.get(weight_key) in df.columns:
-                score_components.append(
-                    top_10[col_map[weight_key]] * CONFIG["weights"][weight_key]
-                )
+#     # 8. Score breakdown for top compounds
+#     ax8 = plt.subplot(4, 2, 8)
+#     top_10 = df.nsmallest(10, 'rank')
+#     if len(top_10) > 0:
+#         score_components = []
+#         for weight_key in CONFIG["weights"]:
+#             col_map = {
+#                 'binding_affinity': 'on_target_pic50_norm',
+#                 'selectivity': 'selectivity_ratio_norm',
+#                 'cdk11_avoidance': 'cdk11_avoidance_norm',
+#                 'qed': 'qed_score_norm',
+#                 'sa': 'sa_score_normalized_norm',
+#                 'pains': 'pains_score_norm',
+#                 'novelty': 'novelty_score_norm'
+#             }
+#             if col_map.get(weight_key) in df.columns:
+#                 score_components.append(
+#                     top_10[col_map[weight_key]] * CONFIG["weights"][weight_key]
+#                 )
         
-        if score_components:
-            score_df = pd.DataFrame(score_components).T
-            score_df.columns = list(CONFIG["weights"].keys())[:len(score_components)]
-            score_df.plot(kind='bar', stacked=True, ax=ax8)
-            ax8.set_title('Score Breakdown - Top 10 Compounds', fontsize=14)
-            ax8.set_xlabel('Compound Rank')
-            ax8.set_ylabel('Score Contribution')
-            ax8.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+#         if score_components:
+#             score_df = pd.DataFrame(score_components).T
+#             score_df.columns = list(CONFIG["weights"].keys())[:len(score_components)]
+#             score_df.plot(kind='bar', stacked=True, ax=ax8)
+#             ax8.set_title('Score Breakdown - Top 10 Compounds', fontsize=14)
+#             ax8.set_xlabel('Compound Rank')
+#             ax8.set_ylabel('Score Contribution')
+#             ax8.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     
-    plt.tight_layout()
-    dashboard_path = output_dir / f"{team_name}_dashboard.png"
-    plt.savefig(dashboard_path, dpi=300, bbox_inches='tight')
-    plt.close()
+#     plt.tight_layout()
+#     dashboard_path = output_dir / f"{team_name}_dashboard.png"
+#     plt.savefig(dashboard_path, dpi=300, bbox_inches='tight')
+#     plt.close()
     
-    print(f"Dashboard saved to {dashboard_path}")
+#     print(f"Dashboard saved to {dashboard_path}")
 
 
-def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
-    """Generate evaluation report files"""
-    print("Generating evaluation report...")
+# def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
+#     """Generate evaluation report files"""
+#     print("Generating evaluation report...")
     
-    # Save top compounds
-    top_25 = df.nsmallest(CONFIG['top_n_compounds'], 'rank')
-    summary_cols = [
-        'rank', 'compound_id', 'canonical_smiles', 'composite_score',
-        'on_target_pic50', 'on_target_ic50_nm', 'selectivity_ratio', 
-        'cdk11_avoidance', 'qed_score', 'sa_score', 'pains_score', 'novelty_score',
-        'pains_alerts'
-    ]
-    valid_cols = [col for col in summary_cols if col in top_25.columns]
+#     # Save top compounds
+#     top_25 = df.nsmallest(CONFIG['top_n_compounds'], 'rank')
+#     summary_cols = [
+#         'rank', 'compound_id', 'canonical_smiles', 'composite_score',
+#         'on_target_pic50', 'on_target_ic50_nm', 'selectivity_ratio', 
+#         'cdk11_avoidance', 'qed_score', 'sa_score', 'pains_score', 'novelty_score',
+#         'pains_alerts'
+#     ]
+#     valid_cols = [col for col in summary_cols if col in top_25.columns]
     
-    top_compounds_path = output_dir / f"{team_name}_top_compounds.csv"
-    top_25[valid_cols].to_csv(top_compounds_path, index=False)
+#     top_compounds_path = output_dir / f"{team_name}_top_compounds.csv"
+#     top_25[valid_cols].to_csv(top_compounds_path, index=False)
     
-    # Save full results
-    full_results_path = output_dir / f"{team_name}_full_results.csv"
-    df.to_csv(full_results_path, index=False)
+#     # Save full results
+#     full_results_path = output_dir / f"{team_name}_full_results.csv"
+#     df.to_csv(full_results_path, index=False)
     
-    # Generate summary statistics
-    summary_path = output_dir / f"{team_name}_summary.txt"
-    with open(summary_path, 'w') as f:
-        f.write(f"Evaluation Summary for {team_name}\n")
-        f.write(f"{'='*50}\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+#     # Generate summary statistics
+#     summary_path = output_dir / f"{team_name}_summary.txt"
+#     with open(summary_path, 'w') as f:
+#         f.write(f"Evaluation Summary for {team_name}\n")
+#         f.write(f"{'='*50}\n")
+#         f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
-        f.write(f"Total compounds submitted: {len(df)}\n")
-        f.write(f"Valid compounds: {df['is_valid'].sum()}\n")
-        f.write(f"Novel compounds: {df['is_novel'].sum() if 'is_novel' in df.columns else 'N/A'}\n\n")
+#         f.write(f"Total compounds submitted: {len(df)}\n")
+#         f.write(f"Valid compounds: {df['is_valid'].sum()}\n")
+#         f.write(f"Novel compounds: {df['is_novel'].sum() if 'is_novel' in df.columns else 'N/A'}\n\n")
         
         f.write("Top 5 Compounds:\n")
         for idx, row in top_25.head(5).iterrows():
@@ -1234,13 +1235,37 @@ def generate_report(df: pd.DataFrame, team_name: str, output_dir: Path):
                 f"pIC50={cdk11['pic50_str']}, confidence={cdk11['confidence_str']}\n"
             )
         
-        f.write(f"\nMedian Scores:\n")
-        for score_name in ['qed_score', 'sa_score_normalized', 'pains_score', 
-                          'novelty_score', 'composite_score']:
-            if score_name in df.columns:
-                f.write(f"  {score_name}: {df[score_name].median():.3f}\n")
+#         f.write(f"\nMedian Scores:\n")
+#         for score_name in ['qed_score', 'sa_score_normalized', 'pains_score', 
+#                           'novelty_score', 'composite_score']:
+#             if score_name in df.columns:
+#                 f.write(f"  {score_name}: {df[score_name].median():.3f}\n")
     
-    print(f"Report files saved to {output_dir}")
+#     print(f"Report files saved to {output_dir}")
+
+
+def generate_json_output(df: pd.DataFrame, team_name: str, output_dir: Path) -> None:
+    """Generate JSON output with top compound score and median score"""
+    
+    # Calculate metrics
+    top_compound_score = float(df['composite_score'].max())
+    median_score = float(df['composite_score'].median())
+    
+    # Create result JSON
+    result = {
+        "team_name": team_name,
+        "Top_compound_score": top_compound_score,
+        "Median_score": median_score,
+        "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
+        "total_compounds": len(df)
+    }
+    
+    # Save JSON output
+    json_path = output_dir / f"{team_name}_results.json"
+    with open(json_path, 'w') as f:
+        json.dump(result, f, indent=2)
+    
+    print(f"JSON results saved to {json_path}")
 
 
 def main():
@@ -1394,7 +1419,6 @@ def main():
         log_file.close()
     
     return 0  # Should not be reached
-    
 
 if __name__ == "__main__":
     sys.exit(main())
