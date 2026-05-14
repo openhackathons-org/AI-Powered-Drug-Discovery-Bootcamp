@@ -277,7 +277,31 @@ class CDKScorer:
             DataFrame with top compounds
         """
         n = n or self.config.top_n_compounds
-        return scores_df.nsmallest(n, "rank")
+        if scores_df.empty:
+            return scores_df.copy()
+
+        ranked = scores_df.copy()
+        if "rank" in ranked.columns:
+            rank = pd.to_numeric(ranked["rank"], errors="coerce")
+            if rank.notna().any():
+                return (
+                    ranked.assign(_rank_sort=rank)
+                    .sort_values("_rank_sort", na_position="last")
+                    .drop(columns="_rank_sort")
+                    .head(n)
+                )
+
+        if "total_score" in ranked.columns:
+            score = pd.to_numeric(ranked["total_score"], errors="coerce")
+            if score.notna().any():
+                return (
+                    ranked.assign(_score_sort=score)
+                    .sort_values("_score_sort", ascending=False, na_position="last")
+                    .drop(columns="_score_sort")
+                    .head(n)
+                )
+
+        return ranked.head(n)
 
     def get_scoring_summary(self, scores_df: pd.DataFrame) -> Dict[str, Any]:
         """Get summary statistics for scored compounds.
@@ -302,4 +326,3 @@ class CDKScorer:
             "pains_free_count": (scores_df["pains_alerts"] == 0).sum(),
             "drug_like_count": (scores_df["lipinski_violations"] <= 1).sum(),
         }
-

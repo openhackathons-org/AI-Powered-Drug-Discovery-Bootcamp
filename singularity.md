@@ -33,9 +33,10 @@ ports, and endpoint environment variables:
 
 ```bash
 export NGC_API_KEY=<your-ngc-key>
-scripts/openhackathon_services.sh start --boltz2 2
+scripts/openhackathon_services.sh start --boltz2 1
 source .openhackathon-nims.env
 scripts/openhackathon_services.sh status
+python scoring/check_dependencies.py
 jupyter-lab
 ```
 
@@ -43,7 +44,6 @@ This starts:
 
 - MolMIM at `http://localhost:8001`
 - Boltz-2 at `http://localhost:8000`, or the next free port if `8000` is busy
-- Additional Boltz-2 endpoints at `http://localhost:8010`, `8011`, ...
 
 The selected endpoints are written to `.openhackathon-nims.env`. Always source
 that file before running notebooks or scoring jobs:
@@ -59,6 +59,11 @@ scripts/openhackathon_services.sh stop
 ```
 
 Logs are written to `logs/nims/` by default.
+
+To add more Boltz-2 endpoints, pass a larger count, for example
+`scripts/openhackathon_services.sh start --boltz2 4`. On clusters where
+Apptainer falls back to plain `--nv`, each Boltz-2 service may see every GPU, so
+start with one endpoint unless you have confirmed the local GPU isolation mode.
 
 ## GPU Isolation
 
@@ -87,6 +92,10 @@ If `--nvccli` is not available, run one Boltz-2 service per allocation or ask
 the cluster admins to enable non-setuid Apptainer/user namespace support for
 NVIDIA Container CLI integration.
 
+On the OpenHackathon test cluster, `--nvccli` was present but rejected by the
+setuid Apptainer install. The launcher fell back to plain `--nv`, and the
+validated path was one healthy MolMIM endpoint plus one healthy Boltz-2 endpoint.
+
 ## Port Conflicts
 
 On shared nodes another service may already own `8000`. By default the wrapper
@@ -98,6 +107,15 @@ To fail instead of auto-selecting ports:
 ```bash
 export OPENHACKATHON_AUTO_PORTS=0
 ```
+
+If `8000` is busy, do not hard-code ports in notebooks. Use:
+
+```bash
+source .openhackathon-nims.env
+```
+
+The challenge and scoring code read `MOLMIM_URL`, `BOLTZ2_URL`, and
+`BOLTZ2_ENDPOINTS` from that file.
 
 ## Manual Start: MolMIM
 
@@ -125,8 +143,8 @@ For a single endpoint:
 scripts/run_nim_apptainer.sh boltz2 8000 0
 ```
 
-For multiple endpoints on a multi-GPU node, keep the first Boltz-2 endpoint at
-`8000` for notebook defaults and use `8010+` for additional replicas:
+For multiple endpoints on a multi-GPU node, source the generated environment or
+set `BOLTZ2_ENDPOINTS` explicitly:
 
 ```bash
 scripts/run_nim_apptainer.sh boltz2 8000 0
@@ -144,12 +162,16 @@ source .venv/bin/activate
 pip install -r deployment-requirements.txt
 
 cd scoring
+source ../.openhackathon-nims.env
 python evaluate_submission_parallel_no_mock.py cdk_test_compounds.csv CDK_Validation \
-  --endpoints 8000,8010,8011,8012 \
   --max-workers 8 \
   --skip-toxicity --skip-novelty \
   --verbose
 ```
+
+When `BOLTZ2_ENDPOINTS` is present, the evaluator uses those endpoints by
+default. Use `--endpoints` only when you need to override the generated service
+environment.
 
 ## Operational Notes
 
@@ -160,3 +182,9 @@ python evaluate_submission_parallel_no_mock.py cdk_test_compounds.csv CDK_Valida
 - If several users share a node, choose non-conflicting ports and set
   `MOLMIM_URL`, `BOLTZ2_URL`, or `BOLTZ2_ENDPOINTS` accordingly.
 - To override image tags, set `MOLMIM_IMAGE` or `BOLTZ2_IMAGE`.
+- If `scoring/chembl_data/chembl_fingerprints.pkl` is missing or is only a Git
+  LFS pointer, the hands-on CDK notebook falls back to seed/reference novelty
+  scoring. For full ChEMBL novelty scoring, run `git lfs pull` or rebuild the
+  cache with `cd scoring && python create_chembl_database.py`.
+- Troubleshooting starts with `scripts/openhackathon_services.sh status`, then
+  the per-service logs under `logs/nims/`.

@@ -32,14 +32,16 @@ with `--nv`.
 export NGC_API_KEY=<PASTE_API_KEY_HERE>
 export LOCAL_NIM_CACHE=${LOCAL_NIM_CACHE:-$HOME/.cache/nim}
 
-# Start MolMIM plus two Boltz-2 endpoints
-scripts/openhackathon_services.sh start --boltz2 2
+# Start MolMIM plus one Boltz-2 endpoint
+scripts/openhackathon_services.sh start --boltz2 1
 source .openhackathon-nims.env
 scripts/openhackathon_services.sh status
+python scoring/check_dependencies.py
 ```
 
 See [`singularity.md`](singularity.md) for the full cluster workflow, cache
-notes, image overrides, and multi-endpoint evaluation commands.
+notes, image overrides, generated endpoint environment, and multi-endpoint
+evaluation commands.
 
 ### Option B: Docker on Local GPU Workstations
 
@@ -96,6 +98,7 @@ After the NIM services are running and dependencies are installed, start Jupyter
 Lab to explore the tutorials and challenge:
 
 ```bash
+source .openhackathon-nims.env
 jupyter-lab
 ```
 

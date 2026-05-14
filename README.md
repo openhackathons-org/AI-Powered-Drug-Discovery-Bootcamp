@@ -53,14 +53,20 @@ cd AI-Powered-Drug-Discovery-Bootcamp
 # Install dependencies
 pip install -r deployment-requirements.txt
 
-# Follow deployment guide for MolMIM and Boltz-2 NIM setup
+# Start MolMIM plus one Boltz-2 endpoint with Apptainer/Singularity
 export NGC_API_KEY=<PASTE_API_KEY_HERE>
-scripts/openhackathon_services.sh start --boltz2 2
+scripts/openhackathon_services.sh start --boltz2 1
 source .openhackathon-nims.env
+python scoring/check_dependencies.py
 
 # Start with the overview Start_Here.ipynb notebook
 jupyter-lab Start_Here.ipynb
 ```
+
+The service wrapper writes the actual MolMIM and Boltz-2 URLs to
+`.openhackathon-nims.env`. Source that file in every shell before running
+notebooks or scoring scripts, especially on shared nodes where port `8000` may
+already be in use.
 
 ## The Challenge
 

@@ -19,6 +19,35 @@ from .scoring import CDKScorer
 from .visualization import CDKVisualizer
 
 
+def _top_compounds_by_rank(scores_df: pd.DataFrame, n: int) -> pd.DataFrame:
+    """Return top compounds even when CSV/object dtypes leak into rank columns."""
+    if scores_df.empty:
+        return scores_df.copy()
+
+    ranked = scores_df.copy()
+    if "rank" in ranked.columns:
+        rank = pd.to_numeric(ranked["rank"], errors="coerce")
+        if rank.notna().any():
+            return (
+                ranked.assign(_rank_sort=rank)
+                .sort_values("_rank_sort", na_position="last")
+                .drop(columns="_rank_sort")
+                .head(n)
+            )
+
+    if "total_score" in ranked.columns:
+        score = pd.to_numeric(ranked["total_score"], errors="coerce")
+        if score.notna().any():
+            return (
+                ranked.assign(_score_sort=score)
+                .sort_values("_score_sort", ascending=False, na_position="last")
+                .drop(columns="_score_sort")
+                .head(n)
+            )
+
+    return ranked.head(n)
+
+
 @dataclass
 class PipelineResults:
     """Container for pipeline results."""
@@ -31,7 +60,7 @@ class PipelineResults:
     
     def get_top_compounds(self, n: int = 10) -> pd.DataFrame:
         """Get top N compounds by score."""
-        return self.scores_df.nsmallest(n, "rank")
+        return _top_compounds_by_rank(self.scores_df, n)
     
     def save(self, output_dir: str):
         """Save results to disk."""
@@ -828,7 +857,7 @@ class CDKDesignPipeline:
         scores_df.to_csv(output_dir / "all_compounds_scores.csv", index=False)
         
         # Save top compounds separately
-        top_df = scores_df.nsmallest(self.config.top_n_compounds, "rank")
+        top_df = _top_compounds_by_rank(scores_df, self.config.top_n_compounds)
         top_df.to_csv(output_dir / "top_compounds.csv", index=False)
         
         # Save summary as JSON
@@ -897,4 +926,3 @@ class CDKDesignPipeline:
             use_msa=use_msa,
             verbose=verbose
         )
-

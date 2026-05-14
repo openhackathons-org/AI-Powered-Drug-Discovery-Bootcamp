@@ -335,8 +335,17 @@ def load_chembl_fingerprints(chembl_path: str = None) -> Dict[str, Any]:
         return _CHEMBL_FP_CACHE
     
     print(f"Loading ChEMBL fingerprints from {fp_path}...")
-    with open(fp_path, 'rb') as f:
-        _CHEMBL_FP_CACHE = pickle.load(f)
+    try:
+        with open(fp_path, 'rb') as f:
+            _CHEMBL_FP_CACHE = pickle.load(f)
+    except (pickle.UnpicklingError, EOFError, ValueError, OSError) as exc:
+        print(f"Warning: could not load ChEMBL fingerprints from {fp_path}: {exc}")
+        print("Novelty scoring will use only seed/reference molecules for this run.")
+        print("To enable ChEMBL-based novelty, ensure Git LFS data is present or run:")
+        print("  cd scoring && python create_chembl_database.py")
+        _CHEMBL_FP_CACHE = {}
+        return _CHEMBL_FP_CACHE
+
     print(f"Loaded {len(_CHEMBL_FP_CACHE)} ChEMBL fingerprints")
     
     return _CHEMBL_FP_CACHE
@@ -498,4 +507,3 @@ def batch_calculate_novelty_chembl(
         })
     
     return results
-

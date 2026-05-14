@@ -194,14 +194,28 @@ class CDKVisualizer:
         Returns:
             matplotlib Figure
         """
-        top_df = df.nsmallest(n, "rank") if "rank" in df.columns else df.head(n)
+        if df.empty:
+            print("No compounds available to plot")
+            return None
+
+        top_df = df.copy()
+        if "rank" in top_df.columns:
+            rank = pd.to_numeric(top_df["rank"], errors="coerce")
+            if rank.notna().any():
+                top_df = (
+                    top_df.assign(_rank_sort=rank)
+                    .sort_values("_rank_sort", na_position="last")
+                    .drop(columns="_rank_sort")
+                )
+        top_df = top_df.head(n)
         
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         
         # Total score bar chart
         ax1 = axes[0]
-        compounds = top_df["compound_id"].tolist() if "compound_id" in top_df.columns else [f"C{i}" for i in range(len(top_df))]
-        scores = top_df["total_score"].tolist()
+        compounds = top_df["compound_id"].fillna("").astype(str).tolist() if "compound_id" in top_df.columns else [f"C{i}" for i in range(len(top_df))]
+        compounds = [compound if compound else f"C{i}" for i, compound in enumerate(compounds)]
+        scores = pd.to_numeric(top_df["total_score"], errors="coerce").fillna(0.0).tolist()
         
         bars = ax1.barh(range(len(compounds)), scores, color=self.colors["good"], alpha=0.8)
         ax1.set_yticks(range(len(compounds)))
@@ -215,8 +229,10 @@ class CDKVisualizer:
         x = range(len(compounds))
         width = 0.35
         
-        cdk4_ic50 = top_df.get("cdk4_ic50_nm", top_df.get(f"{self.config.on_target}_IC50_pred", [0]*len(top_df)))
-        cdk11_ic50 = top_df.get("cdk11_ic50_nm", top_df.get(f"{self.config.anti_target}_IC50_pred", [0]*len(top_df)))
+        cdk4_ic50 = top_df.get("cdk4_ic50_nm", top_df.get(f"{self.config.on_target}_IC50_pred", pd.Series([np.nan] * len(top_df))))
+        cdk11_ic50 = top_df.get("cdk11_ic50_nm", top_df.get(f"{self.config.anti_target}_IC50_pred", pd.Series([np.nan] * len(top_df))))
+        cdk4_ic50 = pd.to_numeric(cdk4_ic50, errors="coerce").fillna(0.1).clip(lower=0.1)
+        cdk11_ic50 = pd.to_numeric(cdk11_ic50, errors="coerce").fillna(0.1).clip(lower=0.1)
         
         ax2.barh([i - width/2 for i in x], cdk4_ic50, width, label="CDK4", color=self.colors["cdk4"], alpha=0.8)
         ax2.barh([i + width/2 for i in x], cdk11_ic50, width, label="CDK11", color=self.colors["cdk11"], alpha=0.8)
@@ -329,6 +345,25 @@ class CDKVisualizer:
         self.plot_affinity_scatter(scores_df, save_path=output_dir / "affinity_scatter.png", show=False)
         self.plot_score_distribution(scores_df, save_path=output_dir / "score_distribution.png", show=False)
         self.plot_top_compounds(scores_df, save_path=output_dir / "top_compounds.png", show=False)
+
+        top_table = scores_df.copy()
+        if "rank" in top_table.columns:
+            rank = pd.to_numeric(top_table["rank"], errors="coerce")
+            if rank.notna().any():
+                top_table = (
+                    top_table.assign(_rank_sort=rank)
+                    .sort_values("_rank_sort", na_position="last")
+                    .drop(columns="_rank_sort")
+                )
+        top_table = top_table.head(10)
+        table_cols = [
+            col for col in [
+                "compound_id", "smiles", "cdk4_ic50_nm", "cdk11_ic50_nm",
+                "selectivity_ratio", "total_score"
+            ]
+            if col in top_table.columns
+        ]
+        top_table_html = top_table[table_cols].to_html(index=False) if table_cols else "<p>No compounds available.</p>"
         
         # Generate HTML
         html = f"""
@@ -384,7 +419,7 @@ class CDKVisualizer:
     <img src="top_compounds.png" alt="Top Compounds">
     
     <h2>Top 10 Compounds Table</h2>
-    {scores_df.nsmallest(10, 'rank')[['compound_id', 'smiles', 'cdk4_ic50_nm', 'cdk11_ic50_nm', 'selectivity_ratio', 'total_score']].to_html(index=False)}
+    {top_table_html}
     
 </body>
 </html>
@@ -396,4 +431,3 @@ class CDKVisualizer:
         
         print(f"Report generated: {report_path}")
         return str(report_path)
-
