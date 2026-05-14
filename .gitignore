@@ -9,6 +9,9 @@
 **/prediction_metadata.json
 **/structure_0.cif
 **/*.BAK
+.openhackathon-nims.env
+.sif/
+logs/nims/
 scoring/cdk_inhibitors_dataset copy.csv
 cdk_inhibitors_dataset.csv
 scoring/chembl_data/chembl_compounds.db
