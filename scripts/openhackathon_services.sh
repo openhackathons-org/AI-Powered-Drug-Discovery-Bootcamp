@@ -12,6 +12,7 @@ boltz2_count=1
 start_molmim=1
 auto_ports="${OPENHACKATHON_AUTO_PORTS:-1}"
 resolved_boltz2_ports=()
+reserved_ports=()
 
 usage() {
     cat <<'EOF'
@@ -60,6 +61,13 @@ port_for_boltz2() {
 
 port_is_free() {
     local port="$1"
+    local reserved
+    for reserved in "${reserved_ports[@]}"; do
+        if [ "$reserved" = "$port" ]; then
+            return 1
+        fi
+    done
+
     if command -v ss >/dev/null 2>&1; then
         ! ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$port$"
     else
@@ -102,6 +110,19 @@ resolve_port() {
 
     echo "Port $desired for $name is in use; using $actual instead." >&2
     echo "$actual"
+}
+
+service_is_running() {
+    local name="$1"
+    local pid_path
+    pid_path="$(pid_file "$name")"
+
+    [ -f "$pid_path" ] && kill -0 "$(cat "$pid_path")" >/dev/null 2>&1
+}
+
+env_url_port() {
+    local url="$1"
+    echo "${url##*:}"
 }
 
 write_env_file() {
@@ -153,6 +174,11 @@ cmd_start() {
         exit 1
     fi
 
+    if [ -f "$env_file" ]; then
+        # shellcheck disable=SC1090
+        source "$env_file"
+    fi
+
     local gpu_count=1
     if command -v nvidia-smi >/dev/null 2>&1; then
         gpu_count="$(nvidia-smi -L | wc -l)"
@@ -162,16 +188,32 @@ cmd_start() {
     fi
 
     if [ "$start_molmim" -eq 1 ]; then
-        molmim_port="$(resolve_port "molmim" "$molmim_port")"
+        if service_is_running "molmim" && [ -n "${MOLMIM_URL:-}" ]; then
+            molmim_port="$(env_url_port "$MOLMIM_URL")"
+        else
+            molmim_port="$(resolve_port "molmim" "$molmim_port")"
+        fi
+        reserved_ports+=("$molmim_port")
         start_service "molmim" "molmim" "$molmim_port" 0
+    fi
+
+    local existing_boltz2_endpoints="${BOLTZ2_ENDPOINTS:-}"
+    local existing_boltz2_urls=()
+    if [ -n "$existing_boltz2_endpoints" ]; then
+        IFS=',' read -r -a existing_boltz2_urls <<< "$existing_boltz2_endpoints"
     fi
 
     for i in $(seq 0 $((boltz2_count - 1))); do
         local desired_port
         local actual_port
-        desired_port="$(port_for_boltz2 "$i")"
-        actual_port="$(resolve_port "boltz2-$i" "$desired_port")"
+        if service_is_running "boltz2-$i" && [ "${#existing_boltz2_urls[@]}" -gt "$i" ]; then
+            actual_port="$(env_url_port "${existing_boltz2_urls[$i]}")"
+        else
+            desired_port="$(port_for_boltz2 "$i")"
+            actual_port="$(resolve_port "boltz2-$i" "$desired_port")"
+        fi
         resolved_boltz2_ports+=("$actual_port")
+        reserved_ports+=("$actual_port")
         start_service "boltz2-$i" "boltz2" "$actual_port" "$((i % gpu_count))"
         sleep 2
     done
