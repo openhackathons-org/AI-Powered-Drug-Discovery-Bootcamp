@@ -32,26 +32,10 @@ with `--nv`.
 export NGC_API_KEY=<PASTE_API_KEY_HERE>
 export LOCAL_NIM_CACHE=${LOCAL_NIM_CACHE:-$HOME/.cache/nim}
 
-# MolMIM defaults to port 8001 for this bootcamp
-scripts/run_nim_apptainer.sh molmim 8001 0
-```
-
-In another terminal on the same compute node:
-
-```bash
-scripts/check_nim_health.sh molmim 8001 1
-```
-
-For Boltz-2:
-
-```bash
-# Single endpoint
-scripts/run_nim_apptainer.sh boltz2 8000 0
-
-# Or multiple endpoints on a multi-GPU node.
-# Use 8010+ to avoid MolMIM's 8001 host port.
-scripts/launch_multiple_boltz2_apptainer.sh 4 8010
-scripts/check_nim_health.sh boltz2 8010 4
+# Start MolMIM plus two Boltz-2 endpoints
+scripts/openhackathon_services.sh start --boltz2 2
+source .openhackathon-nims.env
+scripts/openhackathon_services.sh status
 ```
 
 See [`singularity.md`](singularity.md) for the full cluster workflow, cache

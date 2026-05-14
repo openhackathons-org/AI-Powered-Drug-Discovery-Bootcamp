@@ -54,7 +54,9 @@ cd AI-Powered-Drug-Discovery-Bootcamp
 pip install -r deployment-requirements.txt
 
 # Follow deployment guide for MolMIM and Boltz-2 NIM setup
-cat deployment.md
+export NGC_API_KEY=<PASTE_API_KEY_HERE>
+scripts/openhackathon_services.sh start --boltz2 2
+source .openhackathon-nims.env
 
 # Start with the overview Start_Here.ipynb notebook
 jupyter-lab Start_Here.ipynb
