@@ -10,6 +10,8 @@ boltz2_port="${BOLTZ2_PORT:-8000}"
 extra_boltz2_start_port="${EXTRA_BOLTZ2_START_PORT:-8010}"
 boltz2_count=1
 start_molmim=1
+auto_ports="${OPENHACKATHON_AUTO_PORTS:-1}"
+resolved_boltz2_ports=()
 
 usage() {
     cat <<'EOF'
@@ -33,7 +35,8 @@ Defaults:
 Environment overrides:
   MOLMIM_PORT, BOLTZ2_PORT, EXTRA_BOLTZ2_START_PORT
   OPENHACKATHON_LOG_DIR, OPENHACKATHON_ENV_FILE
-  NGC_API_KEY, LOCAL_NIM_CACHE, SIF_DIR
+  OPENHACKATHON_AUTO_PORTS=0 to fail instead of picking a free port
+  NGC_API_KEY, LOCAL_NIM_CACHE, LOCAL_NIM_WORKSPACE, SIF_DIR
 EOF
 }
 
@@ -43,11 +46,62 @@ pid_file() {
 
 port_for_boltz2() {
     local idx="$1"
+    if [ "${#resolved_boltz2_ports[@]}" -gt "$idx" ]; then
+        echo "${resolved_boltz2_ports[$idx]}"
+        return 0
+    fi
+
     if [ "$idx" -eq 0 ]; then
         echo "$boltz2_port"
     else
         echo $((extra_boltz2_start_port + idx - 1))
     fi
+}
+
+port_is_free() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ! ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$port$"
+    else
+        ! (echo >/dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1
+    fi
+}
+
+find_free_port() {
+    local port="$1"
+    local limit=$((port + 200))
+    while [ "$port" -le "$limit" ]; do
+        if port_is_free "$port"; then
+            echo "$port"
+            return 0
+        fi
+        port=$((port + 1))
+    done
+    return 1
+}
+
+resolve_port() {
+    local name="$1"
+    local desired="$2"
+    local actual
+
+    if port_is_free "$desired"; then
+        echo "$desired"
+        return 0
+    fi
+
+    if [ "$auto_ports" != "1" ]; then
+        echo "Error: port $desired for $name is already in use. Choose another port or enable OPENHACKATHON_AUTO_PORTS=1." >&2
+        exit 1
+    fi
+
+    actual="$(find_free_port "$((desired + 1))")" || {
+        echo "Error: could not find a free port for $name after $desired." >&2
+        exit 1
+    }
+
+    echo "Port $desired for $name is in use; using $actual instead." >&2
+    echo "$actual"
 }
 
 write_env_file() {
@@ -102,11 +156,17 @@ cmd_start() {
     fi
 
     if [ "$start_molmim" -eq 1 ]; then
+        molmim_port="$(resolve_port "molmim" "$molmim_port")"
         start_service "molmim" "molmim" "$molmim_port" 0
     fi
 
     for i in $(seq 0 $((boltz2_count - 1))); do
-        start_service "boltz2-$i" "boltz2" "$(port_for_boltz2 "$i")" "$((i % gpu_count))"
+        local desired_port
+        local actual_port
+        desired_port="$(port_for_boltz2 "$i")"
+        actual_port="$(resolve_port "boltz2-$i" "$desired_port")"
+        resolved_boltz2_ports+=("$actual_port")
+        start_service "boltz2-$i" "boltz2" "$actual_port" "$((i % gpu_count))"
         sleep 2
     done
 

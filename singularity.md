@@ -8,6 +8,11 @@ The Docker commands in NVIDIA NIM documentation map host ports with `-p`.
 Apptainer normally shares the host network namespace, so these scripts set
 `NIM_HTTP_API_PORT` instead of using Docker-style port mapping.
 
+The Boltz-2 configuration page is the source of truth for NIM-specific
+environment variables:
+
+https://docs.nvidia.com/nim/bionemo/boltz2/latest/configure.html
+
 ## Prerequisites
 
 - A GPU allocation on a compute node.
@@ -37,8 +42,15 @@ jupyter-lab
 This starts:
 
 - MolMIM at `http://localhost:8001`
-- Boltz-2 at `http://localhost:8000`
+- Boltz-2 at `http://localhost:8000`, or the next free port if `8000` is busy
 - Additional Boltz-2 endpoints at `http://localhost:8010`, `8011`, ...
+
+The selected endpoints are written to `.openhackathon-nims.env`. Always source
+that file before running notebooks or scoring jobs:
+
+```bash
+source .openhackathon-nims.env
+```
 
 Stop services with:
 
@@ -47,6 +59,45 @@ scripts/openhackathon_services.sh stop
 ```
 
 Logs are written to `logs/nims/` by default.
+
+## GPU Isolation
+
+Boltz-2 honors `NVIDIA_VISIBLE_DEVICES`, and the launcher sets it from the GPU
+index argument. With Apptainer, plain `--nv` can still expose all host NVIDIA
+device files. When available, the launcher automatically uses Apptainer's
+`--nvccli --contain` mode so `NVIDIA_VISIBLE_DEVICES` controls which GPU device
+is bound into the container. Some setuid Apptainer installs advertise
+`--nvccli` but reject it at runtime; the launcher probes this path and falls
+back to plain `--nv` when the probe fails.
+
+To require this stricter mode and fail fast if the cluster lacks
+`nvidia-container-cli`, set:
+
+```bash
+export APPTAINER_GPU_MODE=nvccli
+```
+
+To force the legacy Apptainer behavior, set:
+
+```bash
+export APPTAINER_GPU_MODE=nv
+```
+
+If `--nvccli` is not available, run one Boltz-2 service per allocation or ask
+the cluster admins to enable non-setuid Apptainer/user namespace support for
+NVIDIA Container CLI integration.
+
+## Port Conflicts
+
+On shared nodes another service may already own `8000`. By default the wrapper
+detects busy ports and picks the next free port, then writes the actual
+endpoint values to `.openhackathon-nims.env`.
+
+To fail instead of auto-selecting ports:
+
+```bash
+export OPENHACKATHON_AUTO_PORTS=0
+```
 
 ## Manual Start: MolMIM
 
