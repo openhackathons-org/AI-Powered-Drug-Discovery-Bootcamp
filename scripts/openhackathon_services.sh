@@ -134,6 +134,12 @@ start_service() {
     fi
 
     echo "Starting $name on port $port using GPU $gpu"
+    CUDA_VISIBLE_DEVICES="$gpu" \
+    NVIDIA_VISIBLE_DEVICES="$gpu" \
+    APPTAINERENV_CUDA_VISIBLE_DEVICES="$gpu" \
+    APPTAINERENV_NVIDIA_VISIBLE_DEVICES="$gpu" \
+    SINGULARITYENV_CUDA_VISIBLE_DEVICES="$gpu" \
+    SINGULARITYENV_NVIDIA_VISIBLE_DEVICES="$gpu" \
     nohup setsid "$repo_root/scripts/run_nim_apptainer.sh" "$service" "$port" "$gpu" \
         >"$log_file" 2>&1 &
     echo "$!" > "$pid_path"
