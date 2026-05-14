@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, NVIDIA CORPORATION. Licensed under the Apache License, Version 2.0 (the "License") you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
 """
-OpenHackathon CDK Inhibitor Evaluation Script
+AI-Powered-Drug-Discovery-Bootcamp CDK Inhibitor Evaluation Script
 
 This script evaluates chemical compound submissions for CDK4/6 selectivity
 with minimal CDK11 binding. It processes SMILES files and generates
@@ -1274,7 +1276,7 @@ def generate_json_output(df: pd.DataFrame, team_name: str, output_dir: Path) -> 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate OpenHackathon CDK inhibitor submissions"
+        description="Evaluate AI-Powered-Drug-Discovery-Bootcamp CDK inhibitor submissions"
     )
     parser.add_argument("smiles_file", help="Path to SMILES file (CSV, TXT, or SMI)")
     parser.add_argument("team_name", help="Team name for identification")

@@ -1,5 +1,8 @@
 # Content Modernization Plan
 
+Copyright (c) 2026, NVIDIA CORPORATION. Licensed under the Apache License, Version 2.0 (the "License") you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+
 This repository currently teaches MolMIM-driven molecule generation and a CDK4
 inhibitor challenge with Boltz-2 validation. The next version should make three
 changes explicit:
@@ -8,7 +11,7 @@ changes explicit:
    external prerequisite.
 2. Support Apptainer/Singularity as the primary cluster runtime, with Docker as
    a convenience path for local workstations.
-3. Align lesson structure and language with the locally cloned DLI source at
+3. Align lesson structure and language with the locally cloned reference material at
    `../x-hx-20-v1`.
 
 ## Proposed Lesson Flow
@@ -40,7 +43,7 @@ changes explicit:
    - Keep real Boltz-2 evaluation in the final path and mock/demo evaluation in
      a clearly marked smoke-test path.
 
-## DLI Comparison Status
+## Reference Content Comparison Status
 
 Compared against:
 
@@ -50,7 +53,7 @@ Compared against:
 
 Ported:
 
-- DLI notebook flow into the existing OpenHackathon notebook locations.
+- Compact notebook flow into the existing bootcamp notebook locations.
 - Multi-endpoint Boltz-2 health checking and endpoint balancing.
 - RDKit `rdFingerprintGenerator` migration for Morgan fingerprints.
 - Novelty-score caching during optimization.
@@ -58,9 +61,9 @@ Ported:
 - `known_ligands.csv` used by the updated Boltz-2 validation notebook.
 - Boltz-2 Python client requirement updated to `>=0.5.2.post1`.
 
-Adapted for OpenHackathon/HPC:
+Adapted for AI-Powered-Drug-Discovery-Bootcamp/HPC:
 
-- DLI Docker service names such as `molmim`, `boltz2-1`, and `boltz2-2` were
+- Reference Docker service names such as `molmim`, `boltz2-1`, and `boltz2-2` were
   replaced with localhost endpoints.
 - Apptainer/Singularity is documented as the primary cluster runtime.
 - Multi-endpoint Boltz-2 examples use `8010+` to avoid colliding with MolMIM on
@@ -73,4 +76,4 @@ Still worth doing:
 - Build or document a local Apptainer/Singularity deployment for ReaSyn MCP.
 - Run the updated notebooks end-to-end against live MolMIM and Boltz-2 NIMs.
 - Decide whether to preserve the older deep-dive MolMIM tutorial sequence or
-  fully converge on the shorter DLI flow.
+  fully converge on the shorter guided flow.

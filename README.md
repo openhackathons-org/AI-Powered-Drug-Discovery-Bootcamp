@@ -1,6 +1,9 @@
-# BioNeMo Bootcamp
+# AI-Powered-Drug-Discovery-Bootcamp
 
-## Welcome to the BioNeMo Bootcamp and Hackathon Challenge
+Copyright (c) 2026, NVIDIA CORPORATION. Licensed under the Apache License, Version 2.0 (the "License") you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+
+## Welcome to AI-Powered-Drug-Discovery-Bootcamp
 
 NVIDIA BioNeMo is a computational drug discovery platform built for developers and data scientists. BioNeMo provides an open-source machine learning framework for building and training deep learning models, and a set of optimized and easy-to-use NIM microservices for deploying AI workflows at scale.  BioNeMo NIM microservices are constructed as containers with everything needed for efficient, portable deployment and easy API integration into enterprise-grade AI applications.
 
@@ -27,9 +30,9 @@ The [`challenge/`](challenge/) folder contains the hackathon challenge where you
 - **03_Hands-On_CDK_Inhibitor_Design.ipynb**: End-to-end pipeline for CDK4 inhibitor design including generation, affinity prediction, and composite scoring
 
 ### 🧪 Mini Hands-On
-The [`mini-hands-on/`](mini-hands-on/) folder contains a compact DLI-style track integrated into this workshop. It uses the same local MolMIM/Boltz-2 services and shared CDK oracle code as the main bootcamp, but presents the material as a shorter guided sequence:
+The [`mini-hands-on/`](mini-hands-on/) folder contains a compact hands-on track integrated into this workshop. It uses the same local MolMIM/Boltz-2 services and shared CDK oracle code as the main bootcamp, but presents the material as a shorter guided sequence:
 - **00_Introduction.ipynb**: Mini-track entry point and notebook order
-- **01_NIM_Setup.ipynb**: OpenHackathon Apptainer/Singularity setup notes adapted from the DLI deployment guide
+- **01_NIM_Setup.ipynb**: Apptainer/Singularity setup notes for AI-Powered-Drug-Discovery-Bootcamp
 - **02_Overview-Designing_CDK4_Inhibitors.ipynb**: CDK4 inhibitor design background
 - **03_Hands-On_CDK_Inhibitor_Design.ipynb**: End-to-end CDK inhibitor generation and scoring workflow
 - **04_Optional_MolMIM_CMA-ES_Controlled_Generation.ipynb**: Focused MolMIM CMA-ES optimization exercise
@@ -50,7 +53,7 @@ By the end of this workshop, participants will:
 
 1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md), or use [`singularity.md`](singularity.md) when Docker is not available on the cluster.
 3. **Complete Tutorials**: Work through the set of introductory notebooks in the [`tutorials/`](tutorials/) folder
-4. **Try the Mini Track**: Use [`mini-hands-on/`](mini-hands-on/) for a shorter DLI-style guided path
+4. **Try the Mini Track**: Use [`mini-hands-on/`](mini-hands-on/) for a shorter guided path
 5. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
 
 ## Quick Start

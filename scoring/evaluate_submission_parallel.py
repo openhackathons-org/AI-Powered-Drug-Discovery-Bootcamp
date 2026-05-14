@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, NVIDIA CORPORATION. Licensed under the Apache License, Version 2.0 (the "License") you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
 """
-Parallel OpenHackathon Evaluation Script with Multi-Endpoint Boltz2 Support
+Parallel AI-Powered-Drug-Discovery-Bootcamp Evaluation Script with Multi-Endpoint Boltz2 Support
 
 This script evaluates chemical compound submissions against multiple criteria
 using parallel processing with multiple Boltz2 NIM endpoints for faster predictions.
@@ -997,7 +999,7 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>OpenHackathon Evaluation Report - {team_name}</title>
+        <title>AI-Powered-Drug-Discovery-Bootcamp Evaluation Report - {team_name}</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; }}
             .header {{ background-color: #f0f0f0; padding: 20px; border-radius: 5px; }}
@@ -1013,7 +1015,7 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
     </head>
     <body>
         <div class="header">
-            <h1>OpenHackathon Evaluation Report</h1>
+            <h1>AI-Powered-Drug-Discovery-Bootcamp Evaluation Report</h1>
             <h2>Team: {team_name}</h2>
             <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
             <p>Evaluated using parallel processing with multiple Boltz2 endpoints</p>
@@ -1085,7 +1087,7 @@ def generate_html_report(df: pd.DataFrame, team_name: str, output_dir: str):
         f.write(html_content)
 
 async def main():
-    parser = argparse.ArgumentParser(description='Parallel OpenHackathon Compound Evaluation')
+    parser = argparse.ArgumentParser(description='Parallel AI-Powered-Drug-Discovery-Bootcamp Compound Evaluation')
     parser.add_argument('smiles_file', help='CSV file containing SMILES')
     parser.add_argument('team_name', help='Team name for the submission')
     parser.add_argument('--endpoints', default=os.environ.get("BOLTZ2_ENDPOINTS", os.environ.get("BOLTZ2_URL", "8000,8001,8002")),
