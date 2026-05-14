@@ -11,7 +11,7 @@ This bootcamp combines comprehensive tutorials with a cutting-edge hackathon cha
 
 ## Repository Structure
 
-At the top level, you'll find detailed instructions for deploying the MolMIM and Boltz-2 NIMs in [`deployment.md`](deployment.md), an HPC-focused Apptainer/Singularity workflow in [`singularity.md`](singularity.md), and all required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once the services are healthy, you can follow along with the Tutorials and Challenge.
+At the top level, [`HOW_TO_GET_STARTED.md`](HOW_TO_GET_STARTED.md) provides the shortest implementation checklist. You'll also find detailed instructions for deploying the MolMIM and Boltz-2 NIMs in [`deployment.md`](deployment.md), an HPC-focused Apptainer/Singularity workflow in [`singularity.md`](singularity.md), and all required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once the services are healthy, you can follow along with the Tutorials and Challenge.
 
 ### 📚 Tutorials
 The [`tutorials/`](tutorials/) folder contains everything you need to get started and background on the models and techniques used in the Challenge:
