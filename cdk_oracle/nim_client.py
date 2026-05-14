@@ -359,12 +359,24 @@ class Boltz2AffinityClient:
 
             ligand = Ligand(id="B", smiles=smiles, predict_affinity=True)
 
-            pocket = PocketConstraint(
-                ligand_id="B",
-                polymer_id="A",
-                residue_ids=binding_sites,
-                binder="B"
-            )
+            pocket_fields = getattr(PocketConstraint, "model_fields", {})
+            if "contacts" in pocket_fields:
+                # boltz2-python-client>=0.5.2 uses Contact records instead of
+                # the older ligand_id/polymer_id/residue_ids pocket shape.
+                pocket = PocketConstraint(
+                    binder="B",
+                    contacts=[
+                        {"id": "A", "residue_index": int(residue_id)}
+                        for residue_id in binding_sites
+                    ]
+                )
+            else:
+                pocket = PocketConstraint(
+                    ligand_id="B",
+                    polymer_id="A",
+                    residue_ids=binding_sites,
+                    binder="B"
+                )
 
             request = PredictionRequest(
                 polymers=[polymer],
@@ -770,4 +782,3 @@ class Boltz2AffinityClient:
                     print(f"  ✗ Endpoint {i+1}: {url} - error: {e}")
 
         return status
-
