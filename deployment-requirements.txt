@@ -1,6 +1,13 @@
 numpy
+pandas
 matplotlib
+seaborn
 cma
 rdkit
+biopython
+tqdm
+requests
+sqlalchemy
+boltz2-python-client>=0.5.2.post1
 jupyterlab
 scipy

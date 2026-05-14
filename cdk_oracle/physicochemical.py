@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 
 from rdkit import Chem
-from rdkit.Chem import Descriptors, QED, AllChem, FilterCatalog, rdMolDescriptors
+from rdkit.Chem import Descriptors, QED, AllChem, FilterCatalog, rdMolDescriptors, rdFingerprintGenerator
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
 from .config import CDKConfig
@@ -229,24 +229,26 @@ class PhysicochemCalculator:
 
 def calculate_tanimoto_similarity(smiles1: str, smiles2: str, radius: int = 2) -> float:
     """Calculate Tanimoto similarity between two molecules.
-    
+
     Args:
         smiles1: First SMILES string
         smiles2: Second SMILES string
         radius: Morgan fingerprint radius
-        
+
     Returns:
         Tanimoto similarity (0-1)
     """
     mol1 = Chem.MolFromSmiles(smiles1)
     mol2 = Chem.MolFromSmiles(smiles2)
-    
+
     if mol1 is None or mol2 is None:
         return 0.0
-    
-    fp1 = AllChem.GetMorganFingerprintAsBitVect(mol1, radius, nBits=2048)
-    fp2 = AllChem.GetMorganFingerprintAsBitVect(mol2, radius, nBits=2048)
-    
+
+    # Use new rdFingerprintGenerator API
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=2048)
+    fp1 = gen.GetFingerprint(mol1)
+    fp2 = gen.GetFingerprint(mol2)
+
     from rdkit.DataStructs import TanimotoSimilarity
     return TanimotoSimilarity(fp1, fp2)
 
@@ -367,20 +369,21 @@ def calculate_novelty_score_chembl(
         Tuple of (novelty_score, max_similarity, is_novel)
     """
     from rdkit.DataStructs import TanimotoSimilarity
-    
+
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return 0.0, 1.0, False  # Invalid = not novel
-    
-    # Generate query fingerprint
-    query_fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
-    
+
+    # Generate query fingerprint using new rdFingerprintGenerator API
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    query_fp = gen.GetFingerprint(mol)
+
     # Load ChEMBL fingerprints
     chembl_fps = load_chembl_fingerprints(chembl_path)
-    
+
     # Find max similarity
     max_sim = 0.0
-    
+
     # Check against ChEMBL
     for ref_fp in chembl_fps.values():
         sim = TanimotoSimilarity(query_fp, ref_fp)
@@ -389,13 +392,13 @@ def calculate_novelty_score_chembl(
             if max_sim >= cutoff:
                 # Early exit - already not novel
                 break
-    
+
     # Check against additional references (e.g., seed molecules, generated compounds)
     if additional_refs and max_sim < cutoff:
         for ref_smi in additional_refs:
             ref_mol = Chem.MolFromSmiles(ref_smi)
             if ref_mol:
-                ref_fp = AllChem.GetMorganFingerprintAsBitVect(ref_mol, radius=2, nBits=2048)
+                ref_fp = gen.GetFingerprint(ref_mol)
                 sim = TanimotoSimilarity(query_fp, ref_fp)
                 if sim > max_sim:
                     max_sim = sim
@@ -432,28 +435,29 @@ def batch_calculate_novelty_chembl(
         List of dicts with novelty_score, max_chembl_similarity, is_novel
     """
     from rdkit.DataStructs import TanimotoSimilarity
-    
+
+    # Create fingerprint generator using new rdFingerprintGenerator API
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
     # Pre-load ChEMBL fingerprints
     chembl_fps = load_chembl_fingerprints(chembl_path)
     chembl_fp_list = list(chembl_fps.values())
-    
+
     # Pre-compute additional reference fingerprints
     additional_fps = []
     if additional_refs:
         for ref_smi in additional_refs:
             ref_mol = Chem.MolFromSmiles(ref_smi)
             if ref_mol:
-                additional_fps.append(
-                    AllChem.GetMorganFingerprintAsBitVect(ref_mol, radius=2, nBits=2048)
-                )
-    
+                additional_fps.append(gen.GetFingerprint(ref_mol))
+
     results = []
-    
+
     iterator = smiles_list
     if verbose:
         from tqdm import tqdm
         iterator = tqdm(smiles_list, desc="Computing novelty")
-    
+
     for smiles in iterator:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
@@ -463,8 +467,8 @@ def batch_calculate_novelty_chembl(
                 "is_novel": False
             })
             continue
-        
-        query_fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+
+        query_fp = gen.GetFingerprint(mol)
         
         # Find max similarity against ChEMBL
         max_sim = 0.0

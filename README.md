@@ -8,7 +8,7 @@ This bootcamp combines comprehensive tutorials with a cutting-edge hackathon cha
 
 ## Repository Structure
 
-At the top level, you'll find detailed instructions for deploying the MolMIM NIM in [`deployment.md`](deployment.md) and all the required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once you have the basics in place, you can follow along with the Tutorials and Challenge.
+At the top level, you'll find detailed instructions for deploying the MolMIM and Boltz-2 NIMs in [`deployment.md`](deployment.md), an HPC-focused Apptainer/Singularity workflow in [`singularity.md`](singularity.md), and all required dependencies in [`deployment-requirements.txt`](deployment-requirements.txt). Once the services are healthy, you can follow along with the Tutorials and Challenge.
 
 ### 📚 Tutorials
 The [`tutorials/`](tutorials/) folder contains everything you need to get started and background on the models and techniques used in the Challenge:
@@ -39,7 +39,7 @@ By the end of this workshop, participants will:
 
 ## Getting Started
 
-1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md) or the detailed container setup in [`tutorials/00_Container_Setup.ipynb`](tutorials/00_Container_Setup.ipynb)
+1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md), or use [`singularity.md`](singularity.md) when Docker is not available on the cluster.
 3. **Complete Tutorials**: Work through the set of introductory notebooks in the [`tutorials/`](tutorials/) folder
 4. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
 
@@ -47,12 +47,13 @@ By the end of this workshop, participants will:
 
 ```bash
 # Clone and navigate to the repository
-cd Bootcamp-BioNemo
+git clone https://github.com/openhackathons-org/AI-Powered-Drug-Discovery-Bootcamp.git
+cd AI-Powered-Drug-Discovery-Bootcamp
 
 # Install dependencies
-pip install -r deployment_requirements.txt
+pip install -r deployment-requirements.txt
 
-# Follow deployment guide for MolMIM NIM setup
+# Follow deployment guide for MolMIM and Boltz-2 NIM setup
 cat deployment.md
 
 # Start with the overview Start_Here.ipynb notebook

@@ -176,30 +176,33 @@ class CDKDesignPipeline:
     
     def _calculate_diversity(self, smiles_list: List[str]) -> float:
         """Calculate molecular diversity as average pairwise Tanimoto distance.
-        
+
         Diversity = 1 - average_pairwise_similarity
-        
+
         Higher values = more diverse set of molecules.
-        
+
         Args:
             smiles_list: List of SMILES strings
-            
+
         Returns:
             Diversity score (0-1), where 1 = maximally diverse
         """
         from rdkit import Chem
-        from rdkit.Chem import AllChem
+        from rdkit.Chem import rdFingerprintGenerator
         from rdkit.DataStructs import TanimotoSimilarity
-        
+
         if len(smiles_list) < 2:
             return 1.0  # Single molecule = trivially diverse
-        
+
+        # Create fingerprint generator using new rdFingerprintGenerator API
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
         # Calculate fingerprints
         fps = []
         for smi in smiles_list:
             mol = Chem.MolFromSmiles(smi)
             if mol:
-                fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+                fp = gen.GetFingerprint(mol)
                 fps.append(fp)
         
         if len(fps) < 2:
@@ -298,6 +301,7 @@ class CDKDesignPipeline:
         
         all_generated = []
         self._history = []
+        self._novelty_cache = {}
         best_compounds_overall = []
         
         for seed_idx, seed in enumerate(seed_smiles):
@@ -354,6 +358,7 @@ class CDKDesignPipeline:
                         cutoff=self.config.novelty_similarity_cutoff,
                         additional_refs=self.scorer.reference_smiles + all_generated[-100:]
                     )
+                    self._novelty_cache[smi] = (novelty, max_sim, is_novel)
                     
                     # Combined fast score (weighted)
                     fast_score = (
@@ -462,7 +467,20 @@ class CDKDesignPipeline:
                     if verbose:
                         sel_str = f"{selectivity:.1f}x" if selectivity else "N/A"
                         cdk4_str = f"{cdk4_ic50:.1f}" if cdk4_ic50 else "N/A"
-                        print(f"      {smi[:40]}... CDK4={cdk4_str}nM, sel={sel_str}")
+                        on = self.config.on_target
+                        anti = self.config.anti_target
+                        ep4 = result.get(f"{on}_endpoint", "")
+                        ep11 = result.get(f"{anti}_endpoint", "")
+                        t4 = result.get(f"{on}_time_s")
+                        t11 = result.get(f"{anti}_time_s")
+                        ep_tag = ""
+                        if ep4 or ep11:
+                            ep4_short = ep4.split("//")[-1] if ep4 else "?"
+                            ep11_short = ep11.split("//")[-1] if ep11 else "?"
+                            t4_str = f" {t4:.1f}s" if t4 is not None else ""
+                            t11_str = f" {t11:.1f}s" if t11 is not None else ""
+                            ep_tag = f"  [{on}→{ep4_short}{t4_str}, {anti}→{ep11_short}{t11_str}]"
+                        print(f"      {smi[:40]}... CDK4={cdk4_str}nM, sel={sel_str}{ep_tag}")
                 
                 # === Step 5: Compute final scores for CMA-ES ===
                 final_scores = []
@@ -617,15 +635,25 @@ class CDKDesignPipeline:
             print(f"  Cached from optimization: {len(cached_in_list)}")
             print(f"  Skipping uncached: {len(uncached)} (no Boltz-2 scores)")
         
-        # Only return cached results - skip uncached compounds entirely
-        # This saves expensive Boltz-2 calls for molecules that didn't make top-K
+        # Use cached results where available
         all_results = []
         for smi in smiles_list:
             if smi in affinity_cache:
                 all_results.append(affinity_cache[smi])
-            # Skip uncached molecules - they won't be in final results
-        
-        if verbose and uncached:
+
+        # When skip_generation=True (evaluate_existing mode), predict uncached directly
+        if skip_generation and uncached:
+            if verbose:
+                print(f"  Predicting affinities for {len(uncached)} compounds via Boltz2...")
+            batch = self.boltz2.predict_batch(
+                uncached,
+                proteins=[self.config.on_target, self.config.anti_target],
+                use_msa=use_msa,
+                verbose=verbose,
+                parallel=True
+            )
+            all_results.extend(batch)
+        elif uncached and verbose:
             print(f"  → Using only {len(all_results)} Boltz2-scored compounds for final ranking")
         
         return pd.DataFrame(all_results)
@@ -681,7 +709,8 @@ class CDKDesignPipeline:
         if verbose:
             print(f"Scoring {len(affinity_df)} compounds...")
         
-        return self.scorer.score_batch(affinity_df, verbose=verbose)
+        novelty_cache = getattr(self, '_novelty_cache', None)
+        return self.scorer.score_batch(affinity_df, verbose=verbose, novelty_cache=novelty_cache)
     
     def run(
         self,

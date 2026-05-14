@@ -847,13 +847,11 @@ async def calculate_all_binding_affinities_parallel(df: pd.DataFrame,
     df['CDK4_pic50_eff'] = df.apply(
         lambda row: row['CDK4_pic50'] if pd.notna(row['CDK4_pic50']) else row['CDK4_pic50_raw'], axis=1
     )
-    )
     df['CDK11_pic50_eff'] = df.apply(
         lambda row: row['CDK11_pic50'] if pd.notna(row['CDK11_pic50']) else row['CDK11_pic50_raw'], axis=1
     )
     df['CDK4_ic50_nm_eff'] = df.apply(
         lambda row: row['CDK4_ic50_nm'] if pd.notna(row['CDK4_ic50_nm']) else row['CDK4_ic50_nm_raw'], axis=1
-    )
     )
     df['CDK11_ic50_nm_eff'] = df.apply(
         lambda row: row['CDK11_ic50_nm'] if pd.notna(row['CDK11_ic50_nm']) else row['CDK11_ic50_nm_raw'], axis=1
@@ -1254,4 +1252,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
