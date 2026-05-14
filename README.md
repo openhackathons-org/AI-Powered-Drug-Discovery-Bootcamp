@@ -26,6 +26,15 @@ The [`challenge/`](challenge/) folder contains the hackathon challenge where you
 - **02_The_Challenge-Designing_CDK4_Inhibitors.ipynb**: Detailed challenge specification for designing selective CDK4 inhibitors while avoiding CDK11 binding
 - **03_Hands-On_CDK_Inhibitor_Design.ipynb**: End-to-end pipeline for CDK4 inhibitor design including generation, affinity prediction, and composite scoring
 
+### 🧪 Mini Hands-On
+The [`mini-hands-on/`](mini-hands-on/) folder contains a compact DLI-style track integrated into this workshop. It uses the same local MolMIM/Boltz-2 services and shared CDK oracle code as the main bootcamp, but presents the material as a shorter guided sequence:
+- **00_Introduction.ipynb**: Mini-track entry point and notebook order
+- **01_NIM_Setup.ipynb**: OpenHackathon Apptainer/Singularity setup notes adapted from the DLI deployment guide
+- **02_Overview-Designing_CDK4_Inhibitors.ipynb**: CDK4 inhibitor design background
+- **03_Hands-On_CDK_Inhibitor_Design.ipynb**: End-to-end CDK inhibitor generation and scoring workflow
+- **04_Optional_MolMIM_CMA-ES_Controlled_Generation.ipynb**: Focused MolMIM CMA-ES optimization exercise
+- **05_Optional_Boltz2_validation.ipynb**: Boltz-2 validation on known actives and decoys
+
 
 ## Bootcamp Objectives
 
@@ -41,7 +50,8 @@ By the end of this workshop, participants will:
 
 1. **Setup Environment**: Follow the deployment guide in [`deployment.md`](deployment.md), or use [`singularity.md`](singularity.md) when Docker is not available on the cluster.
 3. **Complete Tutorials**: Work through the set of introductory notebooks in the [`tutorials/`](tutorials/) folder
-4. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
+4. **Try the Mini Track**: Use [`mini-hands-on/`](mini-hands-on/) for a shorter DLI-style guided path
+5. **Take the Challenge**: Apply your skills using the examples in the [`challenge/`](challenge/) folder
 
 ## Quick Start
 
