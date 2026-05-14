@@ -80,7 +80,7 @@ start_service() {
     fi
 
     echo "Starting $name on port $port using GPU $gpu"
-    nohup "$repo_root/scripts/run_nim_apptainer.sh" "$service" "$port" "$gpu" \
+    nohup setsid "$repo_root/scripts/run_nim_apptainer.sh" "$service" "$port" "$gpu" \
         >"$log_file" 2>&1 &
     echo "$!" > "$pid_path"
 }
@@ -133,7 +133,11 @@ cmd_stop() {
         pid="$(cat "$pid_path")"
         if kill -0 "$pid" >/dev/null 2>&1; then
             echo "Stopping $(basename "$pid_path" .pid) (pid $pid)"
-            kill "$pid"
+            kill -- "-$pid" >/dev/null 2>&1 || kill "$pid" >/dev/null 2>&1 || true
+            sleep 1
+            if kill -0 "$pid" >/dev/null 2>&1; then
+                kill -KILL -- "-$pid" >/dev/null 2>&1 || kill -KILL "$pid" >/dev/null 2>&1 || true
+            fi
         else
             echo "$(basename "$pid_path" .pid) is not running"
         fi

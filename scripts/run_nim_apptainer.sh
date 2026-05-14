@@ -10,6 +10,7 @@ Usage:
 Environment:
   NGC_API_KEY              Required for model download and private NGC pulls.
   LOCAL_NIM_CACHE          Host cache directory. Default: ~/.cache/nim
+  LOCAL_NIM_WORKSPACE      Host workspace directory. Default: LOCAL_NIM_CACHE/workspace
   SIF_DIR                  Directory for pulled .sif images. Default: ./.sif
   MOLMIM_IMAGE             Default: nvcr.io/nim/nvidia/molmim:1.0.0
   BOLTZ2_IMAGE             Default: nvcr.io/nim/mit/boltz2:1.6.0
@@ -67,9 +68,16 @@ case "$service" in
         ;;
 esac
 
+default_home="${HOME:-}"
+account_home="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6 || true)"
+if [ -n "$account_home" ] && { [ -z "$default_home" ] || [ ! -w "$default_home" ]; }; then
+    default_home="$account_home"
+fi
+
 sif_dir="${SIF_DIR:-$PWD/.sif}"
-cache_dir="${LOCAL_NIM_CACHE:-$HOME/.cache/nim}"
-mkdir -p "$sif_dir" "$cache_dir"
+cache_dir="${LOCAL_NIM_CACHE:-$default_home/.cache/nim}"
+workspace_dir="${LOCAL_NIM_WORKSPACE:-$cache_dir/workspace}"
+mkdir -p "$sif_dir" "$cache_dir" "$workspace_dir"
 
 sif_path="$sif_dir/$sif_name"
 
@@ -83,7 +91,18 @@ fi
 
 echo "Starting $service NIM on port $port with GPU $gpu_id"
 echo "Cache: $cache_dir"
+echo "Workspace: $workspace_dir"
 echo "Image: $sif_path"
+
+no_mount_args=()
+if [ ! -e /etc/localtime ] && "$runtime" run --help 2>/dev/null | grep -q -- "--no-mount"; then
+    no_mount_args=(--no-mount /etc/localtime)
+fi
+
+export CUDA_VISIBLE_DEVICES="$gpu_id"
+export NVIDIA_VISIBLE_DEVICES="$gpu_id"
+export APPTAINERENV_CUDA_VISIBLE_DEVICES="$gpu_id"
+export APPTAINERENV_NVIDIA_VISIBLE_DEVICES="$gpu_id"
 
 # Apptainer/Singularity share the host network namespace by default. Setting
 # NIM_HTTP_API_PORT changes the port that the service binds inside that shared
@@ -92,12 +111,14 @@ echo "Image: $sif_path"
 exec "$runtime" run \
     --nv \
     --cleanenv \
+    "${no_mount_args[@]}" \
     --env "NGC_API_KEY=$NGC_API_KEY" \
     --env "NGC_CLI_API_KEY=${NGC_CLI_API_KEY:-$NGC_API_KEY}" \
     --env "NVIDIA_VISIBLE_DEVICES=$gpu_id" \
-    --env "CUDA_VISIBLE_DEVICES=0" \
+    --env "CUDA_VISIBLE_DEVICES=$gpu_id" \
     --env "NIM_CACHE_PATH=/opt/nim/.cache" \
     --env "NIM_HTTP_API_PORT=$port" \
     --bind "$cache_dir:/opt/nim/.cache" \
+    --bind "$workspace_dir:/opt/nim/workspace" \
     ${APPTAINER_RUN_ARGS:-} \
     "$sif_path"
