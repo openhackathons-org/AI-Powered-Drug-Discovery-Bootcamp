@@ -31,6 +31,10 @@ from typing import Dict, List, Tuple, Optional, Any
 import warnings
 warnings.filterwarnings('ignore')
 
+from endpoint_env import load_openhackathon_env
+
+load_openhackathon_env()
+
 # RDKit imports
 from rdkit import Chem
 from rdkit.Chem import Descriptors, QED, AllChem, DataStructs, FilterCatalog

@@ -10,6 +10,39 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 
+def _load_openhackathon_env() -> None:
+    """Load generated endpoint env vars when users did not source the file."""
+    candidates = []
+    explicit = os.environ.get("OPENHACKATHON_ENV_FILE")
+    if explicit:
+        candidates.append(Path(explicit))
+
+    cwd = Path.cwd().resolve()
+    candidates.extend(path / ".openhackathon-nims.env" for path in (cwd, *cwd.parents))
+    candidates.append(Path(__file__).resolve().parents[1] / ".openhackathon-nims.env")
+
+    for env_file in candidates:
+        if not env_file.exists():
+            continue
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):]
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+        return
+
+
+_load_openhackathon_env()
+
+
 def _parse_boltz2_endpoints() -> List[Dict[str, str]]:
     """Parse BOLTZ2_ENDPOINTS environment variable.
 
@@ -201,4 +234,3 @@ class CDKConfig:
             "cma_iterations": self.cma_iterations,
             "weights": self.weights,
         }
-

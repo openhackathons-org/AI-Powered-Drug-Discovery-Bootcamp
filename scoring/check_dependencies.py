@@ -5,6 +5,11 @@ import subprocess
 import sys
 import importlib
 import socket
+from urllib.parse import urlparse
+
+from endpoint_env import boltz2_endpoint_urls, load_openhackathon_env
+
+load_openhackathon_env()
 
 # Required packages and their pip names
 REQUIRED_PACKAGES = {
@@ -46,7 +51,7 @@ def check_boltz2_service():
     """Check if Boltz2 service is running"""
     import requests
     try:
-        response = requests.get('http://localhost:8000/health', timeout=5)
+        response = requests.get(f'{boltz2_endpoint_urls()[0]}/v1/health/ready', timeout=5)
         return response.status_code == 200
     except:
         return False
@@ -77,23 +82,26 @@ if missing_packages:
 # Check Boltz2 service
 print("\n" + "=" * 60)
 print("Checking Boltz2 NIM service...")
+boltz2_url = boltz2_endpoint_urls()[0]
+parsed = urlparse(boltz2_url)
+host = parsed.hostname or "localhost"
+port = parsed.port or (443 if parsed.scheme == "https" else 80)
 
-if check_port('localhost', 8000):
-    print("✓ Port 8000 is open")
+if check_port(host, port):
+    print(f"✓ {boltz2_url} is listening")
     if check_package('requests'):
         if check_boltz2_service():
             print("✓ Boltz2 service is healthy")
         else:
-            print("✗ Port 8000 is open but Boltz2 service is not responding")
+            print(f"✗ {boltz2_url} is open but Boltz2 service is not responding")
             print("  The service might need to be restarted")
     else:
         print("  (Install 'requests' to check service health)")
 else:
-    print("✗ Port 8000 is not open - Boltz2 service is not running")
+    print(f"✗ {boltz2_url} is not open - Boltz2 service is not running")
     print("\nTo start Boltz2 NIM locally:")
-    print("1. Using Docker:")
-    print("   docker run --gpus all -p 8000:8000 nvcr.io/nvidia/nim/boltz2:latest")
-    print("\n2. Or check if you have a local Boltz2 deployment script")
+    print("   scripts/openhackathon_services.sh start --boltz2 1 --no-molmim")
+    print("   source .openhackathon-nims.env")
 
 print("\n" + "=" * 60)
 print("Dependency check complete!")

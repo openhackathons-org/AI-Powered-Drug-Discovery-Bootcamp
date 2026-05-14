@@ -25,6 +25,10 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
+from endpoint_env import boltz2_endpoint_urls, load_openhackathon_env, normalize_endpoint_urls
+
+load_openhackathon_env()
+
 # RDKit imports
 try:
     from rdkit import Chem
@@ -55,7 +59,7 @@ except ImportError:
 
 # Configuration
 CONFIG = {
-    "endpoints": [8000, 8001, 8002],  # Default ports for Boltz2 NIM instances
+    "endpoints": boltz2_endpoint_urls("8000,8001,8002"),
     "max_workers": 6,  # Maximum concurrent workers
     "api_timeout": 300,  # Timeout for API calls in seconds
     "confidence_threshold": 0.5,
@@ -83,8 +87,8 @@ CDK_PROTEIN_INFO = {
 class EndpointPool:
     """Manages a pool of Boltz2 endpoints with health checking and load balancing"""
     
-    def __init__(self, endpoints: List[int], timeout: int = 300):
-        self.endpoints = [f"http://localhost:{port}" for port in endpoints]
+    def __init__(self, endpoints: List[str], timeout: int = 300):
+        self.endpoints = endpoints
         self.timeout = timeout
         self.healthy_endpoints = []
         self.clients = {}
@@ -629,8 +633,8 @@ async def main():
     parser = argparse.ArgumentParser(description='Parallel OpenHackathon Evaluation - REAL PREDICTIONS ONLY')
     parser.add_argument('smiles_file', help='CSV file containing SMILES')
     parser.add_argument('team_name', help='Team name for the submission')
-    parser.add_argument('--endpoints', default='8000,8001,8002', 
-                       help='Comma-separated list of Boltz2 endpoint ports (default: 8000,8001,8002)')
+    parser.add_argument('--endpoints', default=os.environ.get("BOLTZ2_ENDPOINTS", os.environ.get("BOLTZ2_URL", "8000,8001,8002")),
+                       help='Comma-separated Boltz2 endpoint URLs or ports (default: BOLTZ2_ENDPOINTS/BOLTZ2_URL or 8000,8001,8002)')
     parser.add_argument('--max-workers', type=int, default=6,
                        help='Maximum number of concurrent workers (default: 6)')
     parser.add_argument('--output-dir', default='evaluation_output_real',
@@ -644,14 +648,13 @@ async def main():
     
     args = parser.parse_args()
     
-    # Parse endpoints
-    endpoint_ports = [int(port.strip()) for port in args.endpoints.split(',')]
-    CONFIG["endpoints"] = endpoint_ports
+    endpoint_urls = normalize_endpoint_urls(args.endpoints)
+    CONFIG["endpoints"] = endpoint_urls
     CONFIG["max_workers"] = args.max_workers
     
     print_rt(f"🔬 STARTING REAL-ONLY EVALUATION for team: {args.team_name}")
     print_rt(f"Mode: NO MOCK PREDICTIONS - Real Boltz2 only")
-    print_rt(f"Endpoints: {endpoint_ports}")
+    print_rt(f"Endpoints: {endpoint_urls}")
     print_rt(f"Max workers: {args.max_workers}")
     
     # Load SMILES data
@@ -674,7 +677,7 @@ async def main():
     
     # Initialize endpoint pool - REQUIRED
     try:
-        endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
+        endpoint_pool = EndpointPool(endpoint_urls, timeout=CONFIG["api_timeout"])
         await endpoint_pool.initialize()
     except Exception as e:
         print_rt(f"❌ CRITICAL ERROR: {e}")

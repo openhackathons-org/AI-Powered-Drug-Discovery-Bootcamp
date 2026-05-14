@@ -24,7 +24,6 @@ import pickle
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse, urlunparse
 from shutil import copy2
 from Bio.PDB import MMCIFParser, PDBIO
 from string import ascii_uppercase, digits
@@ -32,6 +31,10 @@ import re
 import traceback
 import warnings
 warnings.filterwarnings('ignore')
+
+from endpoint_env import boltz2_endpoint_urls, load_openhackathon_env, normalize_endpoint_urls
+
+load_openhackathon_env()
 
 # RDKit imports
 try:
@@ -62,7 +65,7 @@ except ImportError:
 
 # Configuration
 CONFIG = {
-    "endpoints": [8000, 8001, 8002],  # Default ports for Boltz2 NIM instances
+    "endpoints": boltz2_endpoint_urls("8000,8001,8002"),
     "boltz2_url": os.environ.get("BOLTZ2_URL", "http://localhost:8000"),
     "max_workers": 6,  # Maximum concurrent workers
     "api_timeout": 300,  # Timeout for API calls in seconds
@@ -258,14 +261,8 @@ CDK_PROTEIN_INFO = {
 class EndpointPool:
     """Manages a pool of Boltz2 endpoints with health checking and load balancing"""
     
-    def __init__(self, endpoints: List[int], timeout: int = 300):
-        base = urlparse(CONFIG["boltz2_url"])
-        if not base.scheme or not base.netloc:
-            raise ValueError(f"Invalid Boltz2 base URL: {CONFIG['boltz2_url']}")
-        self.endpoints = [
-            urlunparse((base.scheme, f"{base.hostname}:{port}", base.path, base.params, base.query, base.fragment))
-            for port in endpoints
-        ]
+    def __init__(self, endpoints: List[str], timeout: int = 300):
+        self.endpoints = endpoints
         self.timeout = timeout
         self.healthy_endpoints = []
         self.clients = {}
@@ -1091,8 +1088,8 @@ async def main():
     parser = argparse.ArgumentParser(description='Parallel OpenHackathon Compound Evaluation')
     parser.add_argument('smiles_file', help='CSV file containing SMILES')
     parser.add_argument('team_name', help='Team name for the submission')
-    parser.add_argument('--endpoints', default='8000,8001,8002', 
-                       help='Comma-separated list of Boltz2 endpoint ports (default: 8000,8001,8002)')
+    parser.add_argument('--endpoints', default=os.environ.get("BOLTZ2_ENDPOINTS", os.environ.get("BOLTZ2_URL", "8000,8001,8002")),
+                       help='Comma-separated Boltz2 endpoint URLs or ports (default: BOLTZ2_ENDPOINTS/BOLTZ2_URL or 8000,8001,8002)')
     parser.add_argument('--max-workers', type=int, default=6,
                        help='Maximum number of concurrent workers (default: 6)')
     parser.add_argument('--output-dir', default='evaluation_output',
@@ -1112,8 +1109,8 @@ async def main():
     
     args = parser.parse_args()
     
-    endpoint_ports = [int(port.strip()) for port in args.endpoints.split(',')]
-    CONFIG["endpoints"] = endpoint_ports
+    endpoint_urls = normalize_endpoint_urls(args.endpoints, args.boltz2_url)
+    CONFIG["endpoints"] = endpoint_urls
     CONFIG["max_workers"] = args.max_workers
     CONFIG["novelty_cutoff"] = args.novelty_cutoff
     CONFIG["boltz2_url"] = args.boltz2_url
@@ -1136,7 +1133,7 @@ async def main():
         print_rt(f"Evaluation log will be saved to: {log_path}")
         print_rt(f"Starting parallel evaluation for team: {args.team_name}")
         print_rt(f"Boltz2 base URL: {CONFIG['boltz2_url']}")
-        print_rt(f"Using endpoints: {endpoint_ports}")
+        print_rt(f"Using endpoints: {endpoint_urls}")
         print_rt(f"Max workers: {args.max_workers}")
 
         smiles_path = Path(args.smiles_file)
@@ -1188,7 +1185,7 @@ async def main():
             df['cdk11_avoidance'] = np.nan
             df['selectivity_ratio'] = np.nan
         else:
-            endpoint_pool = EndpointPool(endpoint_ports, timeout=CONFIG["api_timeout"])
+            endpoint_pool = EndpointPool(endpoint_urls, timeout=CONFIG["api_timeout"])
             await endpoint_pool.initialize()
             df = await calculate_all_binding_affinities_parallel(
                 df, endpoint_pool, args.max_workers, args.verbose

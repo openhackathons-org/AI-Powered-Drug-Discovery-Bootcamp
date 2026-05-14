@@ -1,0 +1,72 @@
+"""Helpers for reading generated OpenHackathon NIM endpoint settings."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Iterable, List
+
+
+def _candidate_env_files() -> Iterable[Path]:
+    explicit = os.environ.get("OPENHACKATHON_ENV_FILE")
+    if explicit:
+        yield Path(explicit)
+
+    cwd = Path.cwd().resolve()
+    for path in (cwd, *cwd.parents):
+        yield path / ".openhackathon-nims.env"
+
+    yield Path(__file__).resolve().parents[1] / ".openhackathon-nims.env"
+
+
+def load_openhackathon_env() -> None:
+    """Load .openhackathon-nims.env into os.environ without overriding values."""
+    for env_file in _candidate_env_files():
+        if not env_file.exists():
+            continue
+
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):]
+            if "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+        return
+
+
+def normalize_endpoint(value: str, base_url: str = "http://localhost") -> str:
+    value = value.strip()
+    if not value:
+        return ""
+    if "|" in value:
+        value = value.split("|", 1)[0].strip()
+    if value.startswith("http://") or value.startswith("https://"):
+        return value.rstrip("/")
+    if value.isdigit():
+        return f"http://localhost:{value}"
+    if ":" in value and "/" not in value:
+        return f"http://{value}"
+
+    return base_url.rstrip("/")
+
+
+def normalize_endpoint_urls(value: str, base_url: str = "http://localhost") -> List[str]:
+    return [
+        endpoint
+        for endpoint in (normalize_endpoint(part, base_url) for part in value.split(","))
+        if endpoint
+    ]
+
+
+def boltz2_endpoint_urls(default: str = "8000") -> List[str]:
+    load_openhackathon_env()
+    endpoints = os.environ.get("BOLTZ2_ENDPOINTS") or os.environ.get("BOLTZ2_URL") or default
+    return normalize_endpoint_urls(endpoints, os.environ.get("BOLTZ2_URL", "http://localhost"))
