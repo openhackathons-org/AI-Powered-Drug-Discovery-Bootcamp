@@ -68,6 +68,12 @@ The service wrapper writes the actual MolMIM and Boltz-2 URLs to
 notebooks or scoring scripts, especially on shared nodes where port `8000` may
 already be in use.
 
+The hands-on CDK challenge notebook defaults to a workshop demo mode tuned for
+one Boltz-2 endpoint. For a larger exploratory run, set
+`OPENHACKATHON_DEMO_MODE=0` before launching Jupyter, or override individual
+knobs such as `OPENHACKATHON_CMA_ITERATIONS`, `OPENHACKATHON_CMA_POPSIZE`, and
+`OPENHACKATHON_TOP_K_FOR_BOLTZ2`.
+
 ## The Challenge
 
 The core of this bootcamp culminates in an exciting challenge: **Accelerating Drug Discovery with NVIDIA MolMIM**. You'll harness cutting-edge AI to revolutionize drug discovery by generating and optimizing novel molecular structures with potential as therapeutic agents.
