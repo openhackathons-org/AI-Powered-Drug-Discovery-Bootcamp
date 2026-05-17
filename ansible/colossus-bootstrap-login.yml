@@ -7,15 +7,22 @@
   vars:
     target_user: nvidia
     ssh_public_key: ""
+    ssh_public_key_b64: ""
     grant_passwordless_sudo: false
 
   tasks:
+    - name: Decode SSH public key parameter
+      ansible.builtin.set_fact:
+        effective_ssh_public_key: >-
+          {{ (ssh_public_key_b64 | length > 0)
+             | ternary(ssh_public_key_b64 | b64decode, ssh_public_key) }}
+
     - name: Validate ssh_public_key was provided
       ansible.builtin.assert:
         that:
-          - ssh_public_key | length > 0
-          - ssh_public_key is match('^ssh-(ed25519|rsa|ecdsa) ')
-        fail_msg: "Pass ssh_public_key='<your public SSH key>' in Extra Parameters."
+          - effective_ssh_public_key | length > 0
+          - effective_ssh_public_key is match('^ssh-(ed25519|rsa|ecdsa) ')
+        fail_msg: "Pass ssh_public_key_b64='<base64 encoded public SSH key>' or ssh_public_key='<your public SSH key>' in Extra Parameters."
 
     - name: Ensure target user exists
       ansible.builtin.user:
@@ -35,7 +42,7 @@
     - name: Install SSH public key for target user
       ansible.builtin.lineinfile:
         path: "/home/{{ target_user }}/.ssh/authorized_keys"
-        line: "{{ ssh_public_key }}"
+        line: "{{ effective_ssh_public_key }}"
         create: true
         owner: "{{ target_user }}"
         group: "{{ target_user }}"
