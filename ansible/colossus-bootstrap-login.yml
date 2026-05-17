@@ -1,0 +1,66 @@
+---
+- name: Bootstrap SSH login for a Colossus lease host
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    target_user: nvidia
+    ssh_public_key: ""
+    grant_passwordless_sudo: false
+
+  tasks:
+    - name: Validate ssh_public_key was provided
+      ansible.builtin.assert:
+        that:
+          - ssh_public_key | length > 0
+          - ssh_public_key is match('^ssh-(ed25519|rsa|ecdsa) ')
+        fail_msg: "Pass ssh_public_key='<your public SSH key>' in Extra Parameters."
+
+    - name: Ensure target user exists
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Ensure .ssh directory exists
+      ansible.builtin.file:
+        path: "/home/{{ target_user }}/.ssh"
+        state: directory
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: "0700"
+
+    - name: Install SSH public key for target user
+      ansible.builtin.lineinfile:
+        path: "/home/{{ target_user }}/.ssh/authorized_keys"
+        line: "{{ ssh_public_key }}"
+        create: true
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: "0600"
+
+    - name: Allow passwordless sudo when requested
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/90-{{ target_user }}-colossus"
+        owner: root
+        group: root
+        mode: "0440"
+        content: "{{ target_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        validate: "visudo -cf %s"
+      when: grant_passwordless_sudo | bool
+
+    - name: Ensure SSH service is running
+      ansible.builtin.service:
+        name: ssh
+        state: started
+        enabled: true
+      failed_when: false
+
+    - name: Ensure SSHD service is running
+      ansible.builtin.service:
+        name: sshd
+        state: started
+        enabled: true
+      failed_when: false
