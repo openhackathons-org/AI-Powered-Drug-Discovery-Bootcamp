@@ -4,7 +4,7 @@
 set -euo pipefail
 
 service="${1:-boltz2}"
-start_port="${2:-8000}"
+endpoint="${2:-8000}"
 num_instances="${3:-1}"
 
 case "$service" in
@@ -20,11 +20,96 @@ case "$service" in
         ;;
 esac
 
+auth_header=()
+case "$service" in
+    molmim)
+        api_key="${MOLMIM_API_KEY:-${NVIDIA_API_KEY:-${NGC_API_KEY:-}}}"
+        ;;
+    boltz2)
+        api_key="${BOLTZ2_API_KEY:-${NVIDIA_API_KEY:-${NGC_API_KEY:-}}}"
+        ;;
+esac
+
+if [ -n "${api_key:-}" ]; then
+    auth_header=(-H "Authorization: Bearer $api_key")
+fi
+
+molmim_generate_url() {
+    local value="${1%/}"
+
+    case "$value" in
+        *://integrate.api.nvidia.com/*)
+            value="${value/integrate.api.nvidia.com/health.api.nvidia.com}"
+            ;;
+    esac
+
+    case "$value" in
+        */generate)
+            printf '%s\n' "$value"
+            ;;
+        */biology/nvidia/molmim)
+            printf '%s/generate\n' "$value"
+            ;;
+        *)
+            printf '%s/biology/nvidia/molmim/generate\n' "$value"
+            ;;
+    esac
+}
+
+health_url() {
+    local value="$1"
+    local offset="$2"
+
+    case "$value" in
+        http://*|https://*)
+            if [ "$offset" -gt 0 ]; then
+                return 1
+            fi
+            printf '%s%s\n' "${value%/}" "$path"
+            ;;
+        *:*)
+            if [ "$offset" -gt 0 ]; then
+                return 1
+            fi
+            printf 'http://%s%s\n' "$value" "$path"
+            ;;
+        *)
+            if ! printf '%s\n' "$value" | grep -Eq '^[0-9]+$'; then
+                if [ "$offset" -gt 0 ]; then
+                    return 1
+                fi
+                printf 'http://%s%s\n' "$value" "$path"
+                return 0
+            fi
+            port=$((value + offset))
+            printf 'http://localhost:%s%s\n' "$port" "$path"
+            ;;
+    esac
+}
+
 for i in $(seq 0 $((num_instances - 1))); do
-    port=$((start_port + i))
-    url="http://localhost:${port}${path}"
+    if [ "$service" = "molmim" ] && printf '%s\n' "$endpoint" | grep -q 'api\.nvidia\.com'; then
+        url="$(molmim_generate_url "$endpoint")"
+        printf "%s " "$url"
+        if [ -z "${api_key:-}" ]; then
+            printf "not ready (set MOLMIM_API_KEY, NVIDIA_API_KEY, or NGC_API_KEY)\n"
+            break
+        fi
+        if curl -fsS --max-time 30 "${auth_header[@]}" \
+            -H "accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d '{"smi":"CCO","algorithm":"none","num_molecules":1,"particles":2,"scaled_radius":1.0}' \
+            "$url" >/dev/null; then
+            printf "ready\n"
+        else
+            printf "not ready\n"
+        fi
+        break
+    fi
+
+    url="$(health_url "$endpoint" "$i")" || continue
     printf "%s " "$url"
-    if curl -fsS --max-time 5 "$url"; then
+    if curl -fsS --max-time 5 "${auth_header[@]}" "$url"; then
         printf "\n"
     else
         printf "not ready\n"

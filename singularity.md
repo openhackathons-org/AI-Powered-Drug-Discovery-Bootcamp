@@ -7,6 +7,21 @@ This bootcamp should run on clusters that do not provide Docker or the NVIDIA
 Container Runtime. The recommended HPC path is to run the NIM containers with
 Apptainer or Singularity and `--nv`.
 
+For Docker-only GB200/GB300 ARM systems, use the Docker path in
+[`deployment.md`](deployment.md) with
+`OPENHACKATHON_CONTAINER_RUNTIME=docker`. The service wrapper uses
+`scripts/run_nim_container.sh`, which chooses Apptainer/Singularity when
+available and Docker when explicitly requested or when it is the only available
+runtime. The Docker launcher checks requested image tags for native platform
+support before pulling; Boltz-2 `1.6.0` has an ARM64 manifest and MolMIM
+`1.0.0` does not. Boltz-2 `1.6.0` requires a 590-series or newer NVIDIA driver
+with CUDA 13.1 support on GB200-class ARM nodes. This branch was validated on a
+GB200 ARM node with driver 595.58.03/CUDA 13.2. ARM hosts that still run a
+pre-590 driver default to Boltz-2 `1.4.0` unless `BOLTZ2_IMAGE` is set. For ARM
+deployments, run only Boltz-2 locally and use a NVIDIA-hosted or x86-hosted
+MolMIM endpoint by setting `MOLMIM_URL` plus `MOLMIM_API_KEY` or
+`NVIDIA_API_KEY` when authentication is required.
+
 The Docker commands in NVIDIA NIM documentation map host ports with `-p`.
 Apptainer normally shares the host network namespace, so these scripts set
 `NIM_HTTP_API_PORT` instead of using Docker-style port mapping.
@@ -36,16 +51,15 @@ ports, and endpoint environment variables:
 
 ```bash
 export NGC_API_KEY=<your-ngc-key>
-scripts/openhackathon_services.sh start --boltz2 1
+scripts/bootstrap_bootcamp.sh --boltz2 1
 source .openhackathon-nims.env
 scripts/openhackathon_services.sh status
-python scoring/check_dependencies.py
 jupyter-lab
 ```
 
-This starts:
+This installs Python dependencies and starts:
 
-- MolMIM at `http://localhost:8001`
+- MolMIM locally on x86_64/amd64, with hosted fallback
 - Boltz-2 at `http://localhost:8000`, or the next free port if `8000` is busy
 
 The selected endpoints are written to `.openhackathon-nims.env`. Always source
@@ -120,6 +134,19 @@ source .openhackathon-nims.env
 The challenge and scoring code read `MOLMIM_URL`, `BOLTZ2_URL`, and
 `BOLTZ2_ENDPOINTS` from that file.
 
+When using hosted MolMIM with local Boltz-2 explicitly, start the wrapper with:
+
+```bash
+export NGC_API_KEY=<your-ngc-key>
+scripts/openhackathon_services.sh start --molmim hosted --boltz2 1
+source .openhackathon-nims.env
+```
+
+By default, `--molmim auto` uses hosted MolMIM on aarch64/arm64 and local
+MolMIM with hosted fallback on x86_64/amd64. The NVIDIA-hosted MolMIM endpoint
+supports molecule generation. Workflows that need MolMIM latent `/hidden` and
+`/decode` endpoints for CMA-ES should use a local or x86-hosted MolMIM NIM.
+
 ## Manual Start: MolMIM
 
 The notebooks expect MolMIM at `http://localhost:8001` by default.
@@ -185,6 +212,8 @@ environment.
 - If several users share a node, choose non-conflicting ports and set
   `MOLMIM_URL`, `BOLTZ2_URL`, or `BOLTZ2_ENDPOINTS` accordingly.
 - To override image tags, set `MOLMIM_IMAGE` or `BOLTZ2_IMAGE`.
+- To force a runtime for the wrapper, set
+  `OPENHACKATHON_CONTAINER_RUNTIME=apptainer`, `singularity`, or `docker`.
 - If `scoring/chembl_data/chembl_fingerprints.pkl` is missing or is only a Git
   LFS pointer, the hands-on CDK notebook falls back to seed/reference novelty
   scoring. For full ChEMBL novelty scoring, run `git lfs pull` or rebuild the

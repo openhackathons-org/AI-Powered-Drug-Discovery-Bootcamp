@@ -672,9 +672,14 @@ class CDKDesignPipeline:
             if smi in affinity_cache:
                 all_results.append(affinity_cache[smi])
 
-        # When skip_generation=True (evaluate_existing mode), predict uncached directly
-        if skip_generation and uncached:
+        # When skip_generation=True (evaluate_existing mode), predict uncached directly.
+        # Hosted MolMIM runs use sampling rather than CMA-ES, so there is no optimization
+        # cache; in that case, predict the generated molecules directly as well.
+        predict_uncached = skip_generation or (uncached and not all_results)
+        if predict_uncached and uncached:
             if verbose:
+                if not skip_generation and not all_results:
+                    print("  No cached Boltz2 scores from generation; predicting generated compounds directly")
                 print(f"  Predicting affinities for {len(uncached)} compounds via Boltz2...")
             batch = self.boltz2.predict_batch(
                 uncached,

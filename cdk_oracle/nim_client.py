@@ -13,8 +13,33 @@ import requests
 import numpy as np
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from urllib.parse import urlparse, urlunparse
 
 from .config import CDKConfig
+
+
+def _is_hosted_molmim_url(url: str) -> bool:
+    """Return True for NVIDIA hosted API endpoints."""
+    return "api.nvidia.com" in urlparse(url).netloc
+
+
+def _hosted_molmim_generate_url(url: str) -> str:
+    """Normalize hosted MolMIM URLs to the generation endpoint."""
+    normalized = url.rstrip("/")
+    parsed = urlparse(normalized)
+
+    # The hosted BioNeMo inference routes currently live on health.api.nvidia.com.
+    if parsed.netloc == "integrate.api.nvidia.com":
+        parsed = parsed._replace(netloc="health.api.nvidia.com")
+        normalized = urlunparse(parsed)
+
+    if normalized.endswith("/generate"):
+        return normalized
+
+    if "/biology/nvidia/molmim" in parsed.path:
+        return f"{normalized}/generate"
+
+    return f"{normalized}/biology/nvidia/molmim/generate"
 
 
 @dataclass
@@ -36,14 +61,39 @@ class NIMHealthChecker:
     def check_molmim(self) -> NIMStatus:
         """Check MolMIM NIM health."""
         url = self.config.molmim_url
+        headers = {}
+        if self.config.molmim_api_key:
+            headers["Authorization"] = f"Bearer {self.config.molmim_api_key}"
         try:
+            if _is_hosted_molmim_url(url):
+                hosted_headers = {
+                    **headers,
+                    "accept": "application/json",
+                    "Content-Type": "application/json",
+                }
+                response = requests.post(
+                    _hosted_molmim_generate_url(url),
+                    headers=hosted_headers,
+                    json={
+                        "smi": "CCO",
+                        "algorithm": "none",
+                        "num_molecules": 1,
+                        "particles": 2,
+                        "scaled_radius": 1.0,
+                    },
+                    timeout=30,
+                )
+                if response.status_code == 200:
+                    return NIMStatus("MolMIM", url, True, "Hosted endpoint reachable")
+                return NIMStatus("MolMIM", url, False, f"HTTP {response.status_code}")
+
             # Try health endpoint
-            response = requests.get(f"{url}/v1/health/ready", timeout=5)
+            response = requests.get(f"{url}/v1/health/ready", headers=headers, timeout=5)
             if response.status_code == 200:
                 return NIMStatus("MolMIM", url, True, "Service is healthy")
 
             # Try root endpoint
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=headers, timeout=5)
             if response.status_code in [200, 404]:
                 return NIMStatus("MolMIM", url, True, "Service reachable")
 
@@ -140,11 +190,19 @@ class MolMIMClient:
     def __init__(self, config: CDKConfig = None):
         self.config = config or CDKConfig()
         self.base_url = self.config.molmim_url
+        self.api_key = self.config.molmim_api_key
         self.latent_dims = self.config.molmim_latent_dims
+        self.hosted = _is_hosted_molmim_url(self.base_url)
 
     @property
     def num_latent_dims(self) -> int:
         return self.latent_dims
+
+    def _headers(self) -> Dict[str, str]:
+        headers = {"accept": "application/json", "Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
     def encode(self, smiles: List[str]) -> np.ndarray:
         """Encode SMILES strings into latent space.
@@ -155,11 +213,16 @@ class MolMIMClient:
         Returns:
             np.ndarray of shape (1, len(smiles), latent_dims)
         """
+        if self.hosted:
+            raise RuntimeError(
+                "Hosted MolMIM supports molecule generation but does not expose "
+                "latent-space /hidden. Set OPENHACKATHON_USE_CMA=0 or use a local MolMIM NIM."
+            )
+
         url = f"{self.base_url}/hidden"
-        headers = {"accept": "application/json", "Content-Type": "application/json"}
         data = json.dumps({"sequences": smiles})
 
-        response = requests.post(url, headers=headers, data=data, timeout=60)
+        response = requests.post(url, headers=self._headers(), data=data, timeout=60)
         response.raise_for_status()
 
         embeddings = response.json()["hiddens"]
@@ -175,12 +238,17 @@ class MolMIMClient:
         Returns:
             List of generated SMILES strings
         """
+        if self.hosted:
+            raise RuntimeError(
+                "Hosted MolMIM supports molecule generation but does not expose "
+                "latent-space /decode. Set OPENHACKATHON_USE_CMA=0 or use a local MolMIM NIM."
+            )
+
         dims = list(latent_features.shape)
         if len(dims) == 2:
             latent_features = np.expand_dims(latent_features, 0)
 
         url = f"{self.base_url}/decode"
-        headers = {"accept": "application/json", "Content-Type": "application/json"}
 
         latent_squeezed = np.squeeze(latent_features)
         latent_array = np.expand_dims(np.array(latent_squeezed), axis=1)
@@ -190,10 +258,49 @@ class MolMIMClient:
             "mask": [[True] for _ in range(latent_array.shape[0])]
         }
 
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response = requests.post(url, headers=self._headers(), json=payload, timeout=60)
         response.raise_for_status()
 
         return response.json()["generated"]
+
+    def _sample_hosted(self, smiles: str, num_samples: int = 10, scaled_radius: float = 1.0) -> List[str]:
+        """Sample molecules from NVIDIA hosted MolMIM."""
+        payload = {
+            "smi": smiles,
+            "algorithm": os.environ.get("MOLMIM_HOSTED_ALGORITHM", "none"),
+            "num_molecules": int(num_samples),
+            "particles": max(2, int(num_samples)),
+            "scaled_radius": float(scaled_radius),
+        }
+
+        response = requests.post(
+            _hosted_molmim_generate_url(self.base_url),
+            headers=self._headers(),
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+
+        body = response.json()
+        molecules = body.get("molecules", body.get("samples", []))
+        if isinstance(molecules, str):
+            try:
+                molecules = json.loads(molecules)
+            except json.JSONDecodeError:
+                molecules = [molecules]
+
+        samples = []
+        for entry in molecules:
+            if isinstance(entry, str):
+                smi = entry
+            elif isinstance(entry, dict):
+                smi = entry.get("sample") or entry.get("smiles") or entry.get("smi")
+            else:
+                smi = None
+            if smi:
+                samples.append(smi)
+
+        return samples
 
     def sample(self, smiles: str, num_samples: int = 10) -> List[str]:
         """Sample similar molecules to a seed SMILES.
@@ -205,8 +312,10 @@ class MolMIMClient:
         Returns:
             List of generated SMILES strings
         """
+        if self.hosted:
+            return self._sample_hosted(smiles, num_samples=num_samples)
+
         url = f"{self.base_url}/sampling"
-        headers = {"accept": "application/json", "Content-Type": "application/json"}
 
         payload = {
             "smiles": smiles,
@@ -214,7 +323,7 @@ class MolMIMClient:
             "temperature": 1.0
         }
 
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response = requests.post(url, headers=self._headers(), json=payload, timeout=60)
         response.raise_for_status()
 
         return response.json().get("samples", [])

@@ -39,7 +39,8 @@ cdk_oracle/
 | `boltz2_endpoints` | Line 74 | Auto-parsed from env | Multiple Boltz2 endpoints for parallel predictions |
 | **API Keys** | | | |
 | `nvidia_api_key` | Line 77 | From `NVIDIA_API_KEY` env | NVIDIA API key |
-| `boltz2_api_key` | Line 78 | From `BOLTZ2_API_KEY` env | Boltz2 authentication |
+| `molmim_api_key` | Line 78 | From `MOLMIM_API_KEY` or `NVIDIA_API_KEY` env | MolMIM hosted endpoint authentication |
+| `boltz2_api_key` | Line 79 | From `BOLTZ2_API_KEY` or `NVIDIA_API_KEY` env | Boltz2 authentication |
 | **Target Proteins** | | | |
 | `on_target` | Line 86 | `"CDK4"` | Primary target protein |
 | `anti_target` | Line 87 | `"CDK11"` | Off-target to avoid |
@@ -77,6 +78,7 @@ weights = {
 **Option 1: Environment Variables**
 ```bash
 export MOLMIM_URL="http://my-molmim-server:8001"
+export MOLMIM_API_KEY="your-hosted-molmim-key"
 export BOLTZ2_URL="http://my-boltz2-server:8000"
 export BOLTZ2_ENDPOINTS="http://gpu1:8000,http://gpu2:8000"
 export NVIDIA_API_KEY="your-api-key"
@@ -589,4 +591,3 @@ fast_score = (
 ## Authors
 
 NVIDIA BioNeMo Hackathon Team
-

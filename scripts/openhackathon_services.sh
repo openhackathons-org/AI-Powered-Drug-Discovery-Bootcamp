@@ -12,14 +12,23 @@ boltz2_port="${BOLTZ2_PORT:-8000}"
 extra_boltz2_start_port="${EXTRA_BOLTZ2_START_PORT:-8010}"
 boltz2_count=1
 start_molmim=1
+molmim_url_override=""
+external_molmim_url=""
 auto_ports="${OPENHACKATHON_AUTO_PORTS:-1}"
+detected_arch="${OPENHACKATHON_ARCH:-$(uname -m)}"
+hosted_molmim_url="${OPENHACKATHON_HOSTED_MOLMIM_URL:-https://health.api.nvidia.com/v1/biology/nvidia/molmim}"
+molmim_mode="${OPENHACKATHON_MOLMIM_MODE:-auto}"
+wait_for_ready="${OPENHACKATHON_WAIT_FOR_READY:-1}"
+ready_poll_seconds="${OPENHACKATHON_READY_POLL_SECONDS:-10}"
+molmim_ready_timeout="${OPENHACKATHON_MOLMIM_READY_TIMEOUT:-900}"
+boltz2_ready_timeout="${OPENHACKATHON_BOLTZ2_READY_TIMEOUT:-1800}"
 resolved_boltz2_ports=()
 reserved_ports=()
 
 usage() {
     cat <<'EOF'
 Usage:
-  scripts/openhackathon_services.sh start [--boltz2 N] [--no-molmim]
+  scripts/openhackathon_services.sh start [--boltz2 N] [--molmim auto|local|hosted|none] [--molmim-url URL]
   scripts/openhackathon_services.sh stop
   scripts/openhackathon_services.sh status
   scripts/openhackathon_services.sh env
@@ -35,11 +44,26 @@ Defaults:
   Boltz-2 first: http://localhost:8000
   Boltz-2 extra: starts at http://localhost:8010
 
+MolMIM selection:
+  auto    x86_64/amd64 tries local MolMIM first, then hosted fallback.
+          aarch64/arm64 uses hosted MolMIM by default.
+  local   require local MolMIM NIM.
+  hosted  use hosted MolMIM and do not launch local MolMIM.
+  none    do not configure or launch MolMIM.
+
 Environment overrides:
   MOLMIM_PORT, BOLTZ2_PORT, EXTRA_BOLTZ2_START_PORT
   OPENHACKATHON_LOG_DIR, OPENHACKATHON_ENV_FILE
   OPENHACKATHON_AUTO_PORTS=0 to fail instead of picking a free port
-  NGC_API_KEY, LOCAL_NIM_CACHE, LOCAL_NIM_WORKSPACE, SIF_DIR
+  OPENHACKATHON_CONTAINER_RUNTIME=auto|apptainer|singularity|docker
+  OPENHACKATHON_DOCKER_GPU_MODE=device|all
+  OPENHACKATHON_DOCKER_USE_NVIDIA_RUNTIME=0|1
+  OPENHACKATHON_MOLMIM_MODE=auto|local|hosted|none
+  OPENHACKATHON_HOSTED_MOLMIM_URL=https://health.api.nvidia.com/v1/biology/nvidia/molmim
+  OPENHACKATHON_WAIT_FOR_READY=0 to return immediately after launching
+  OPENHACKATHON_MOLMIM_READY_TIMEOUT, OPENHACKATHON_BOLTZ2_READY_TIMEOUT
+  NGC_API_KEY, NVIDIA_API_KEY, MOLMIM_API_KEY, LOCAL_NIM_CACHE, LOCAL_NIM_WORKSPACE, SIF_DIR
+  MOLMIM_IMAGE, BOLTZ2_IMAGE
 EOF
 }
 
@@ -122,9 +146,109 @@ service_is_running() {
     [ -f "$pid_path" ] && kill -0 "$(cat "$pid_path")" >/dev/null 2>&1
 }
 
+stop_service_by_name() {
+    local name="$1"
+    local pid_path
+    pid_path="$(pid_file "$name")"
+
+    [ -f "$pid_path" ] || return 0
+    local pid
+    pid="$(cat "$pid_path")"
+    if kill -0 "$pid" >/dev/null 2>&1; then
+        echo "Stopping $name (pid $pid)"
+        kill -- "-$pid" >/dev/null 2>&1 || kill "$pid" >/dev/null 2>&1 || true
+        sleep 1
+        if kill -0 "$pid" >/dev/null 2>&1; then
+            kill -KILL -- "-$pid" >/dev/null 2>&1 || kill -KILL "$pid" >/dev/null 2>&1 || true
+        fi
+    fi
+    rm -f "$pid_path"
+}
+
 env_url_port() {
     local url="$1"
     echo "${url##*:}"
+}
+
+is_arm_arch() {
+    case "$detected_arch" in
+        aarch64|arm64)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_external_url() {
+    local url="$1"
+    [ -n "$url" ] || return 1
+    case "$url" in
+        http://localhost:*|http://127.0.0.1:*|"")
+            return 1
+            ;;
+        http://*|https://*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+show_service_log_tail() {
+    local name="$1"
+    local log_file="$log_dir/$name.log"
+    if [ -f "$log_file" ]; then
+        echo "Last lines from $log_file:" >&2
+        tail -40 "$log_file" >&2 || true
+    fi
+}
+
+wait_until_ready() {
+    local service="$1"
+    local endpoint="$2"
+    local timeout="$3"
+    local name="${4:-}"
+    local deadline=$((SECONDS + timeout))
+
+    if [ "$wait_for_ready" != "1" ]; then
+        return 0
+    fi
+
+    echo "Waiting up to ${timeout}s for $service at $endpoint"
+    while [ "$SECONDS" -le "$deadline" ]; do
+        if "$repo_root/scripts/check_nim_health.sh" "$service" "$endpoint" 1 >/dev/null 2>&1; then
+            echo "$service is ready: $endpoint"
+            return 0
+        fi
+
+        if [ -n "$name" ] && ! service_is_running "$name"; then
+            echo "$service process $name exited before becoming ready." >&2
+            show_service_log_tail "$name"
+            return 1
+        fi
+
+        sleep "$ready_poll_seconds"
+    done
+
+    echo "$service did not become ready within ${timeout}s: $endpoint" >&2
+    if [ -n "$name" ]; then
+        show_service_log_tail "$name"
+    fi
+    return 1
+}
+
+validate_molmim_mode() {
+    case "$molmim_mode" in
+        auto|local|hosted|none)
+            ;;
+        *)
+            echo "Error: MolMIM mode must be auto, local, hosted, or none." >&2
+            exit 1
+            ;;
+    esac
 }
 
 write_env_file() {
@@ -133,8 +257,29 @@ write_env_file() {
         endpoints+=("http://localhost:$(port_for_boltz2 "$i")")
     done
 
+    local output_molmim_url="$external_molmim_url"
+    if [ -z "$output_molmim_url" ]; then
+        output_molmim_url="${molmim_url_override:-${MOLMIM_URL:-}}"
+    fi
+
     {
-        echo "export MOLMIM_URL=\"http://localhost:$molmim_port\""
+        if [ "$start_molmim" -eq 1 ]; then
+            echo "export MOLMIM_URL=\"http://localhost:$molmim_port\""
+        elif [ -n "$output_molmim_url" ]; then
+            echo "export MOLMIM_URL=\"$output_molmim_url\""
+        else
+            echo "# MOLMIM_URL is not set. Export MOLMIM_URL to a hosted MolMIM endpoint before running MolMIM notebooks."
+        fi
+        if [ "$start_molmim" -eq 1 ]; then
+            echo "export OPENHACKATHON_ACTIVE_MOLMIM_MODE=\"local\""
+            echo "export OPENHACKATHON_USE_CMA=\"1\""
+        elif [ -n "$output_molmim_url" ]; then
+            echo "export OPENHACKATHON_ACTIVE_MOLMIM_MODE=\"hosted\""
+            echo "export OPENHACKATHON_USE_CMA=\"0\""
+        else
+            echo "export OPENHACKATHON_ACTIVE_MOLMIM_MODE=\"none\""
+            echo "export OPENHACKATHON_USE_CMA=\"0\""
+        fi
         echo "export BOLTZ2_URL=\"${endpoints[0]}\""
         local joined
         joined="$(IFS=,; echo "${endpoints[*]}")"
@@ -163,13 +308,15 @@ start_service() {
     APPTAINERENV_NVIDIA_VISIBLE_DEVICES="$gpu" \
     SINGULARITYENV_CUDA_VISIBLE_DEVICES="$gpu" \
     SINGULARITYENV_NVIDIA_VISIBLE_DEVICES="$gpu" \
-    nohup setsid "$repo_root/scripts/run_nim_apptainer.sh" "$service" "$port" "$gpu" \
+    nohup setsid "$repo_root/scripts/run_nim_container.sh" "$service" "$port" "$gpu" \
         >"$log_file" 2>&1 &
     echo "$!" > "$pid_path"
 }
 
 cmd_start() {
     mkdir -p "$log_dir"
+    local requested_molmim_url="${MOLMIM_URL:-}"
+    validate_molmim_mode
 
     if [ -z "${NGC_API_KEY:-}" ]; then
         echo "Error: NGC_API_KEY is required." >&2
@@ -179,6 +326,59 @@ cmd_start() {
     if [ -f "$env_file" ]; then
         # shellcheck disable=SC1090
         source "$env_file"
+    fi
+
+    local env_molmim_url="${MOLMIM_URL:-}"
+    case "$molmim_mode" in
+        auto)
+            if [ -n "$molmim_url_override" ]; then
+                start_molmim=0
+                external_molmim_url="$molmim_url_override"
+            elif is_external_url "$requested_molmim_url"; then
+                start_molmim=0
+                external_molmim_url="$requested_molmim_url"
+            elif is_arm_arch; then
+                start_molmim=0
+                if is_external_url "$env_molmim_url"; then
+                    external_molmim_url="$env_molmim_url"
+                else
+                    external_molmim_url="$hosted_molmim_url"
+                fi
+            else
+                start_molmim=1
+                if is_external_url "$env_molmim_url"; then
+                    external_molmim_url="$env_molmim_url"
+                else
+                    external_molmim_url="${molmim_url_override:-${requested_molmim_url:-$hosted_molmim_url}}"
+                fi
+            fi
+            ;;
+        local)
+            start_molmim=1
+            external_molmim_url="${molmim_url_override:-${requested_molmim_url:-$hosted_molmim_url}}"
+            ;;
+        hosted)
+            start_molmim=0
+            external_molmim_url="${molmim_url_override:-${requested_molmim_url:-${env_molmim_url:-$hosted_molmim_url}}}"
+            ;;
+        none)
+            start_molmim=0
+            external_molmim_url="${molmim_url_override:-${requested_molmim_url:-}}"
+            ;;
+    esac
+
+    if [ "$start_molmim" -eq 0 ] && [ -z "$external_molmim_url" ]; then
+        echo "Warning: MolMIM will not be launched locally and no hosted MOLMIM_URL was provided." >&2
+        echo "         Set MOLMIM_URL, pass --molmim-url, or use --molmim auto/local/hosted." >&2
+    fi
+
+    echo "Detected architecture: $detected_arch"
+    if [ "$start_molmim" -eq 1 ]; then
+        echo "MolMIM mode: local with hosted fallback ($external_molmim_url)"
+    elif [ -n "$external_molmim_url" ]; then
+        echo "MolMIM mode: hosted/external ($external_molmim_url)"
+    else
+        echo "MolMIM mode: none"
     fi
 
     local gpu_count=1
@@ -197,6 +397,16 @@ cmd_start() {
         fi
         reserved_ports+=("$molmim_port")
         start_service "molmim" "molmim" "$molmim_port" 0
+        if ! wait_until_ready "molmim" "http://localhost:$molmim_port" "$molmim_ready_timeout" "molmim"; then
+            if [ "$molmim_mode" = "auto" ] && [ -n "$external_molmim_url" ]; then
+                echo "Local MolMIM did not become healthy; falling back to hosted/external MolMIM."
+                stop_service_by_name "molmim"
+                start_molmim=0
+            else
+                echo "Error: local MolMIM did not become ready." >&2
+                exit 1
+            fi
+        fi
     fi
 
     local existing_boltz2_endpoints="${BOLTZ2_ENDPOINTS:-}"
@@ -221,6 +431,20 @@ cmd_start() {
     done
 
     write_env_file
+
+    if [ "$start_molmim" -eq 0 ] && [ -n "$external_molmim_url" ]; then
+        wait_until_ready "molmim" "$external_molmim_url" "$molmim_ready_timeout" || {
+            echo "Error: hosted/external MolMIM is not ready." >&2
+            exit 1
+        }
+    fi
+
+    for i in $(seq 0 $((boltz2_count - 1))); do
+        wait_until_ready "boltz2" "http://localhost:$(port_for_boltz2 "$i")" "$boltz2_ready_timeout" "boltz2-$i" || {
+            echo "Error: Boltz-2 endpoint $i is not ready." >&2
+            exit 1
+        }
+    done
 
     echo ""
     echo "Environment written to: $env_file"
@@ -265,20 +489,24 @@ cmd_status() {
         source "$env_file"
     fi
 
+    echo "Architecture: $detected_arch"
+    echo "MolMIM mode: ${OPENHACKATHON_ACTIVE_MOLMIM_MODE:-$molmim_mode}"
     echo "Logs: $log_dir"
-    "$repo_root/scripts/check_nim_health.sh" molmim "$molmim_port" 1 || true
+    if [ -n "${MOLMIM_URL:-}" ]; then
+        "$repo_root/scripts/check_nim_health.sh" molmim "$MOLMIM_URL" 1 || true
+    else
+        echo "MolMIM URL is not configured. Set MOLMIM_URL to a hosted endpoint or start local MolMIM."
+    fi
 
     local endpoints="${BOLTZ2_ENDPOINTS:-http://localhost:$boltz2_port}"
     IFS=',' read -r -a urls <<< "$endpoints"
     for url in "${urls[@]}"; do
-        local port
-        port="${url##*:}"
-        "$repo_root/scripts/check_nim_health.sh" boltz2 "$port" 1 || true
+        "$repo_root/scripts/check_nim_health.sh" boltz2 "$url" 1 || true
     done
 }
 
 cmd_env() {
-    if [ ! -f "$env_file" ]; then
+    if [ ! -f "$env_file" ] || [ "$start_molmim" -eq 0 ] || [ -n "$molmim_url_override" ]; then
         write_env_file
     fi
     cat "$env_file"
@@ -293,9 +521,21 @@ while [ "$#" -gt 0 ]; do
             boltz2_count="$2"
             shift 2
             ;;
+        --molmim)
+            molmim_mode="$2"
+            shift 2
+            ;;
         --no-molmim)
+            molmim_mode="none"
             start_molmim=0
             shift
+            ;;
+        --molmim-url|--hosted-molmim-url)
+            molmim_url_override="$2"
+            external_molmim_url="$2"
+            molmim_mode="hosted"
+            start_molmim=0
+            shift 2
             ;;
         --help|-h)
             usage

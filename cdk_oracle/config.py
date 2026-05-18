@@ -45,6 +45,11 @@ def _load_openhackathon_env() -> None:
 _load_openhackathon_env()
 
 
+def _env_or_default(name: str, default: str) -> str:
+    """Return a non-empty environment value or a fallback."""
+    return os.environ.get(name) or default
+
+
 def _parse_boltz2_endpoints() -> List[Dict[str, str]]:
     """Parse BOLTZ2_ENDPOINTS environment variable.
 
@@ -57,12 +62,15 @@ def _parse_boltz2_endpoints() -> List[Dict[str, str]]:
         List of endpoint configs: [{"url": str, "api_key": str}, ...]
     """
     endpoints_str = os.environ.get("BOLTZ2_ENDPOINTS", "")
-    default_api_key = os.environ.get("BOLTZ2_API_KEY", os.environ.get("NVIDIA_API_KEY", ""))
+    default_api_key = os.environ.get(
+        "BOLTZ2_API_KEY",
+        os.environ.get("NVIDIA_API_KEY", os.environ.get("NGC_API_KEY", ""))
+    )
 
     if not endpoints_str:
         # Fall back to single endpoint
         return [{
-            "url": os.environ.get("BOLTZ2_URL", "http://localhost:8000"),
+            "url": _env_or_default("BOLTZ2_URL", "http://localhost:8000"),
             "api_key": default_api_key
         }]
 
@@ -87,7 +95,7 @@ def _parse_boltz2_endpoints() -> List[Dict[str, str]]:
             })
 
     return endpoints if endpoints else [{
-        "url": os.environ.get("BOLTZ2_URL", "http://localhost:8000"),
+        "url": _env_or_default("BOLTZ2_URL", "http://localhost:8000"),
         "api_key": default_api_key
     }]
 
@@ -100,8 +108,8 @@ class CDKConfig:
     """
 
     # === NIM Service URLs ===
-    molmim_url: str = field(default_factory=lambda: os.environ.get("MOLMIM_URL", "http://localhost:8001"))
-    boltz2_url: str = field(default_factory=lambda: os.environ.get("BOLTZ2_URL", "http://localhost:8000"))
+    molmim_url: str = field(default_factory=lambda: _env_or_default("MOLMIM_URL", "http://localhost:8001"))
+    boltz2_url: str = field(default_factory=lambda: _env_or_default("BOLTZ2_URL", "http://localhost:8000"))
 
     # === Multiple Boltz2 Endpoints (for parallel predictions) ===
     # Set via BOLTZ2_ENDPOINTS env var as comma-separated URLs
@@ -109,8 +117,15 @@ class CDKConfig:
     boltz2_endpoints: List[Dict[str, str]] = field(default_factory=lambda: _parse_boltz2_endpoints())
 
     # === API Keys ===
-    nvidia_api_key: str = field(default_factory=lambda: os.environ.get("NVIDIA_API_KEY", ""))
-    boltz2_api_key: str = field(default_factory=lambda: os.environ.get("BOLTZ2_API_KEY", os.environ.get("NVIDIA_API_KEY", "")))
+    nvidia_api_key: str = field(default_factory=lambda: os.environ.get("NVIDIA_API_KEY", os.environ.get("NGC_API_KEY", "")))
+    molmim_api_key: str = field(default_factory=lambda: os.environ.get(
+        "MOLMIM_API_KEY",
+        os.environ.get("NVIDIA_API_KEY", os.environ.get("NGC_API_KEY", ""))
+    ))
+    boltz2_api_key: str = field(default_factory=lambda: os.environ.get(
+        "BOLTZ2_API_KEY",
+        os.environ.get("NVIDIA_API_KEY", os.environ.get("NGC_API_KEY", ""))
+    ))
 
     # === Data Paths ===
     data_dir: Path = field(default_factory=lambda: Path(__file__).parent.parent / "data")
